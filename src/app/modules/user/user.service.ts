@@ -10,9 +10,7 @@ import { logger } from '../../../shared/logger'
 import { paginationHelper } from '../../../helpers/paginationHelper'
 import { IPaginationOptions } from '../../../interfaces/pagination'
 import { S3Helper } from '../../../helpers/image/s3helper'
-import { Useronboarding } from '../useronboarding/useronboarding.model'
 import config from '../../../config'
-import { IUseronboarding } from '../useronboarding/useronboarding.interface'
 import { Subscription } from '../subscription/subscription.model'
 import { IPlan } from '../plan/plan.interface'
 
@@ -209,34 +207,7 @@ export const getProfile = async (user: JwtPayload) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
-  // --- Fetch onboarding + subscription ---
-  const [isOnboarded, subscriber] = await Promise.all([
-    Useronboarding.findOne({ userId: user.authId }),
-    Subscription.findOne({
-      status: 'active',
-      user: user.authId,
-    })
-      .populate<{ plan: IPlan }>({
-        path: 'plan',
-        select: 'name price features duration title',
-      })
-      .lean()
-      .exec(),
-  ])
-
-  // --- Extract onboarding details ---
-  const socialPlatforms =
-    isOnboarded?.socialHandles?.map(s => s?.platform) ?? []
-
-  // --- Build profile response ---
-  return {
-    ...isUserExist.toObject(),
-    platforms: socialPlatforms,
-    membership: subscriber?.plan?.title ?? '',
-    preferredLanguages: isOnboarded?.preferredLanguages ?? [],
-    businessType: isOnboarded?.businessType ?? 'General',
-    businessDescription: isOnboarded?.businessDescription,
-  }
+  return isUserExist
 }
 
 export const UserServices = {
