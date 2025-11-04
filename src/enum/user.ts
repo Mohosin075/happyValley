@@ -6,7 +6,7 @@
 export enum USER_ROLES {
   SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',
-  HOME_OWNER = 'home_owner',
+  CLIENT = 'client', // HOME_OWNER
   STAFF = 'staff'
 }
 

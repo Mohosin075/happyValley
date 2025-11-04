@@ -10,7 +10,7 @@ const createAccount = (values: ICreateAccount) => {
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
         <tr>
           <td align="center" style="padding: 40px 0;">
-            <img src="https://res.cloudinary.com/dmvht7o8m/image/upload/v1737711309/download_bjkj2g.png" alt="Logo" style="width: 150px; height: auto;">
+            <img src="https://i.ibb.co.com/R47rRgSx/79e161e12afac6e2efbf68a958be38388193ce0c.png" alt="Logo" style="width: 150px; height: auto;">
           </td>
         </tr>
         <tr>
@@ -44,7 +44,7 @@ const resetPassword = (values: IResetPassword) => {
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
         <tr>
           <td align="center" style="padding: 40px 0;">
-            <img src="https://res.cloudinary.com/dmvht7o8m/image/upload/v1737711309/download_bjkj2g.png" alt="Logo" style="width: 150px; height: auto;">
+            <img src="https://i.ibb.co.com/R47rRgSx/79e161e12afac6e2efbf68a958be38388193ce0c.png" alt="Logo" style="width: 150px; height: auto;">
           </td>
         </tr>
         <tr>
@@ -84,7 +84,7 @@ const resendOtp = (values: {
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
         <tr>
           <td align="center" style="padding: 40px 0;">
-            <img src="https://res.cloudinary.com/dmvht7o8m/image/upload/v1737711309/download_bjkj2g.png" alt="Logo" style="width: 150px; height: auto;">
+            <img src="https://i.ibb.co.com/R47rRgSx/79e161e12afac6e2efbf68a958be38388193ce0c.png" alt="Logo" style="width: 150px; height: auto;">
           </td>
         </tr>
         <tr>

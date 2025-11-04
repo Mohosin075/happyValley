@@ -44,7 +44,7 @@ const UserSchema = new mongoose_1.Schema({
     role: {
         type: String,
         enum: Object.values(user_1.USER_ROLES),
-        default: user_1.USER_ROLES.HOME_OWNER,
+        default: user_1.USER_ROLES.CLIENT,
     },
     appId: { type: String },
     provider: { type: String },
