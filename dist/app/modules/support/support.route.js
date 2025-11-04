@@ -13,7 +13,7 @@ const support_validation_1 = require("./support.validation");
 const router = express_1.default.Router();
 router.get('/', (0, auth_1.default)(user_1.USER_ROLES.ADMIN), support_controller_1.SupportController.getAllSupports);
 router.get('/:id', (0, auth_1.default)(user_1.USER_ROLES.ADMIN), support_controller_1.SupportController.getSingleSupport);
-router.post('/', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.USER, user_1.USER_ROLES.CREATOR), (0, validateRequest_1.default)(support_validation_1.createSupportSchema), support_controller_1.SupportController.createSupport);
+router.post('/', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.HOME_OWNER, user_1.USER_ROLES.STAFF), (0, validateRequest_1.default)(support_validation_1.createSupportSchema), support_controller_1.SupportController.createSupport);
 router.patch('/:id', (0, auth_1.default)(user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(support_validation_1.updateSupportSchema), support_controller_1.SupportController.updateSupport);
 router.delete('/:id', (0, auth_1.default)(user_1.USER_ROLES.ADMIN), support_controller_1.SupportController.deleteSupport);
 exports.SupportRoutes = router;

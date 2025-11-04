@@ -14,7 +14,7 @@ const router = express_1.default.Router();
 router
     .route('/')
     .post((0, auth_1.default)(user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(plan_validation_1.createPlanZodValidationSchema), plan_controller_1.PlanController.createPlan)
-    .get((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.USER, user_1.USER_ROLES.CREATOR), plan_controller_1.PlanController.getPlan);
+    .get((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.HOME_OWNER, user_1.USER_ROLES.STAFF), plan_controller_1.PlanController.getPlan);
 router
     .route('/:id')
     .patch((0, auth_1.default)(user_1.USER_ROLES.ADMIN), plan_controller_1.PlanController.updatePlan)
