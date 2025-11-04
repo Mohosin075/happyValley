@@ -46,7 +46,7 @@ const createAdmin = async () => {
             restrictionLeftAt: null,
             expiresAt: null,
             latestRequestAt: new Date(),
-            authType: '',
+            authType: 'createAccount',
         },
     };
     const isAdminExist = await user_model_1.User.findOne({
@@ -64,13 +64,12 @@ const createAdmin = async () => {
     return result[0];
 };
 const getAllUsers = async (paginationOptions) => {
-    console.log('iiiii');
     const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(paginationOptions);
     const [result, total] = await Promise.all([
         user_model_1.User.find({ status: { $nin: [user_1.USER_STATUS.DELETED] } })
             .skip(skip)
             .limit(limit)
-            .sort({ [sortBy]: sortOrder })
+            .sort({ [sortBy]: sortOrder }).select('-password -authentication -__v')
             .exec(),
         user_model_1.User.countDocuments({ status: { $nin: [user_1.USER_STATUS.DELETED] } }),
     ]);
@@ -127,7 +126,7 @@ const getUserById = async (userId) => {
     const user = await user_model_1.User.findOne({
         _id: userId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
-    });
+    }).select('-password -authentication -__v');
     return user;
 };
 const updateUserStatus = async (userId, status) => {
@@ -149,7 +148,7 @@ const getProfile = async (user) => {
     const isUserExist = await user_model_1.User.findOne({
         _id: user.authId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
-    }).select('-authentication -password -location -__v');
+    }).select('-authentication -password -__v');
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
