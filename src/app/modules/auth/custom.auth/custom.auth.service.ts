@@ -90,7 +90,6 @@ const customLogin = async (payload: ILoginData): Promise<IAuthResponse> => {
     )
   }
 
-
   const result = await AuthCommonServices.handleLoginLogic(payload, isUserExist)
 
   return result
@@ -609,6 +608,8 @@ const resendOtp = async (
       otp,
       type: authType,
     })
+
+    await emailHelper.sendEmail(forgetPasswordEmailTemplate)
     // emailQueue.add('emails', forgetPasswordEmailTemplate)
   }
 
