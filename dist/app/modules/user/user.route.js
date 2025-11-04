@@ -15,8 +15,8 @@ const s3helper_1 = require("../../../helpers/image/s3helper");
 const fileUploadHandler_1 = __importDefault(require("../../middleware/fileUploadHandler"));
 const user_validation_1 = require("./user.validation");
 const router = express_1.default.Router();
-router.get('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.HOME_OWNER), user_controller_1.UserController.getProfile);
-router.patch('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.HOME_OWNER), (0, fileUploadHandler_1.default)(), async (req, res, next) => {
+router.get('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.CLIENT), user_controller_1.UserController.getProfile);
+router.patch('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.CLIENT), (0, fileUploadHandler_1.default)(), async (req, res, next) => {
     var _a;
     const payload = req.body;
     try {
@@ -42,7 +42,7 @@ router.patch('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USE
         res.status(400).json({ message: 'Failed to upload image' });
     }
 }, (0, validateRequest_1.default)(user_validation_1.updateUserSchema), user_controller_1.UserController.updateProfile);
-router.delete('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.HOME_OWNER), user_controller_1.UserController.deleteProfile);
+router.delete('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.CLIENT), user_controller_1.UserController.deleteProfile);
 router.route('/').get((0, auth_1.default)(user_1.USER_ROLES.ADMIN), user_controller_1.UserController.getAllUsers);
 router
     .route('/:userId')

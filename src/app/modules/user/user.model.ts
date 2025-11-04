@@ -45,7 +45,7 @@ const UserSchema = new Schema<IUser, UserModel>(
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
-      default: USER_ROLES.HOME_OWNER,
+      default: USER_ROLES.CLIENT,
     },
     appId: { type: String },
     provider: { type: String },
