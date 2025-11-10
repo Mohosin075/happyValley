@@ -12,6 +12,11 @@ import { IPaginationOptions } from '../../../interfaces/pagination'
 import { S3Helper } from '../../../helpers/image/s3helper'
 import config from '../../../config'
 import { userFilterableFields } from './user.constants'
+import {
+  emailTemplate,
+  staffCreateTemplate,
+} from '../../../shared/emailTemplate'
+import { emailHelper } from '../../../helpers/emailHelper'
 
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   const isUserExist = await User.findOne({
@@ -77,6 +82,52 @@ const createAdmin = async (): Promise<Partial<IUser> | null> => {
   return result[0]
 }
 
+const createStaff = async (
+  user: JwtPayload,
+  payload: IUser,
+): Promise<Partial<IUser> | null> => {
+  try {
+    const tempPassword = Math.floor(
+      10000000 + Math.random() * 90000000,
+    ).toString()
+
+    const result = await User.create({
+      ...payload,
+      password: tempPassword,
+      verified: true,
+      role: USER_ROLES.STAFF,
+      createdBy: user.authId,
+    })
+
+    if (!result) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Failed to create Staff, please try again with valid data.',
+      )
+    }
+
+    // send account verification email
+    if (result.email) {
+      const emailContent = staffCreateTemplate({
+        email: result.email,
+        name: result.name as string,
+        role: USER_ROLES.STAFF,
+        otp: tempPassword,
+      })
+
+      await emailHelper.sendEmail(emailContent)
+      // emailQueue.add('emails', createStaffEmailTemplate) // optional queue
+    }
+
+    return result
+  } catch (error: any) {
+    if (error.code === 11000) {
+      throw new ApiError(StatusCodes.CONFLICT, 'Duplicate entry found')
+    }
+    throw error
+  }
+}
+
 const getAllUsers = async (
   paginationOptions: IPaginationOptions,
   filterables: IUserFilterables = {}, // safe default
@@ -89,7 +140,7 @@ const getAllUsers = async (
 
   // 🔍 Search functionality
   if (searchTerm) {
-        andConditions.push({
+    andConditions.push({
       $or: userFilterableFields.map(field => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
@@ -241,6 +292,7 @@ export const getProfile = async (user: JwtPayload) => {
 export const UserServices = {
   updateProfile,
   createAdmin,
+  createStaff,
   getAllUsers,
   deleteUser,
   getUserById,

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express'
+import { Request, Response } from 'express'
 
 import { StatusCodes } from 'http-status-codes'
 import catchAsync from '../../../shared/catchAsync'
@@ -10,6 +10,7 @@ import { paginationFields } from '../../../interfaces/pagination'
 import { JwtPayload } from 'jsonwebtoken'
 import ApiError from '../../../errors/ApiError'
 import { userFilterableFields } from './user.constants'
+import { IUser } from './user.interface'
 
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
   const { imageUrl, ...userData } = req.body
@@ -20,6 +21,16 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Profile updated successfully',
+    data: result,
+  })
+})
+
+const createStaff = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserServices.createStaff(req.user!, req.body)
+  sendResponse<Partial<IUser>>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Staff created successfully',
     data: result,
   })
 })
@@ -100,6 +111,7 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
 export const UserController = {
   updateProfile,
   getAllUsers,
+  createStaff,
   deleteUser,
   getUserById,
   updateUserStatus,

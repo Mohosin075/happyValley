@@ -7,7 +7,7 @@ import ApiError from '../../../errors/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { S3Helper } from '../../../helpers/image/s3helper'
 import fileUploadHandler from '../../middleware/fileUploadHandler'
-import { updateUserSchema } from './user.validation'
+import { createStaffSchema, updateUserSchema } from './user.validation'
 
 const router = express.Router()
 
@@ -65,14 +65,32 @@ router.delete(
   UserController.deleteProfile,
 )
 
-router.route('/').get(auth(USER_ROLES.ADMIN ,USER_ROLES.SUPER_ADMIN), UserController.getAllUsers)
+router
+  .route('/')
+  .get(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    UserController.getAllUsers,
+  )
+
+router.post(
+  '/staff',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  validateRequest(createStaffSchema),
+  UserController.createStaff,
+)
 
 router
   .route('/:userId')
-  .get(auth(USER_ROLES.ADMIN ,USER_ROLES.SUPER_ADMIN), UserController.getUserById)
-  .delete(auth(USER_ROLES.ADMIN ,USER_ROLES.SUPER_ADMIN), UserController.deleteUser)
+  .get(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    UserController.getUserById,
+  )
+  .delete(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    UserController.deleteUser,
+  )
   .patch(
-    auth(USER_ROLES.ADMIN ,USER_ROLES.SUPER_ADMIN),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
     validateRequest(updateUserSchema),
     UserController.updateUserStatus,
   )
