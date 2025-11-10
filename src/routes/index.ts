@@ -6,6 +6,7 @@ import { PublicRoutes } from '../app/modules/public/public.route'
 import { SupportRoutes } from '../app/modules/support/support.route'
 import { PlanRoutes } from '../app/modules/plan/plan.routes'
 import { SubscriptionRoutes } from '../app/modules/subscription/subscription.routes'
+import { ServiceRoutes } from '../app/modules/service/service.route'
 
 const router = express.Router()
 
@@ -17,7 +18,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/support', route: SupportRoutes },
   { path: '/plan', route: PlanRoutes },
   { path: '/subscription', route: SubscriptionRoutes },
-]
+  { path: '/service', route: ServiceRoutes }]
 
 apiRoutes.forEach(route => {
   router.use(route.path, route.route)
