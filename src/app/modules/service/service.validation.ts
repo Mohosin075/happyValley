@@ -4,9 +4,9 @@ export const ServiceValidations = {
   create: z.object({
     body: z.object({
       name: z.string(),
-      description: z.string().optional(),
+      description: z.string(),
       servicesProvided: z.array(z.string()),
-      occasions: z.array(z.string()).optional(),
+      occasions: z.array(z.string()),
     }),
   }),
 

@@ -1,58 +1,56 @@
-import { StatusCodes } from 'http-status-codes';
-import ApiError from '../../../errors/ApiError';
-import { IServiceFilterables, IService } from './service.interface';
-import { Service } from './service.model';
-import { JwtPayload } from 'jsonwebtoken';
-import { IPaginationOptions } from '../../../interfaces/pagination';
-import { paginationHelper } from '../../../helpers/paginationHelper';
-import { serviceSearchableFields } from './service.constants';
-import { Types } from 'mongoose';
-
+import { StatusCodes } from 'http-status-codes'
+import ApiError from '../../../errors/ApiError'
+import { IServiceFilterables, IService } from './service.interface'
+import { Service } from './service.model'
+import { JwtPayload } from 'jsonwebtoken'
+import { IPaginationOptions } from '../../../interfaces/pagination'
+import { paginationHelper } from '../../../helpers/paginationHelper'
+import { serviceSearchableFields } from './service.constants'
+import { Types } from 'mongoose'
 
 const createService = async (
   user: JwtPayload,
-  payload: IService
+  payload: IService,
 ): Promise<IService> => {
   try {
-    const result = await Service.create(payload);
+    const result = await Service.create({ ...payload, createdBy: user.authId })
     if (!result) {
-      
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
-        'Failed to create Service, please try again with valid data.'
-      );
+        'Failed to create Service, please try again with valid data.',
+      )
     }
 
-    return result;
+    return result
   } catch (error: any) {
-    
     if (error.code === 11000) {
-      throw new ApiError(StatusCodes.CONFLICT, 'Duplicate entry found');
+      throw new ApiError(StatusCodes.CONFLICT, 'Duplicate entry found')
     }
-    throw error;
+    throw error
   }
-};
+}
 
 const getAllServices = async (
   user: JwtPayload,
   filterables: IServiceFilterables,
-  pagination: IPaginationOptions
+  pagination: IPaginationOptions,
 ) => {
-  const { searchTerm, ...filterData } = filterables;
-  const { page, skip, limit, sortBy, sortOrder } = paginationHelper.calculatePagination(pagination);
+  const { searchTerm, ...filterData } = filterables
+  const { page, skip, limit, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(pagination)
 
-  const andConditions = [];
+  const andConditions = []
 
   // Search functionality
   if (searchTerm) {
     andConditions.push({
-      $or: serviceSearchableFields.map((field) => ({
+      $or: serviceSearchableFields.map(field => ({
         [field]: {
           $regex: searchTerm,
           $options: 'i',
         },
       })),
-    });
+    })
   }
 
   // Filter functionality
@@ -61,19 +59,18 @@ const getAllServices = async (
       $and: Object.entries(filterData).map(([key, value]) => ({
         [key]: value,
       })),
-    });
+    })
   }
 
-  const whereConditions = andConditions.length ? { $and: andConditions } : {};
+  const whereConditions = andConditions.length ? { $and: andConditions } : {}
 
   const [result, total] = await Promise.all([
-    Service
-      .find(whereConditions)
+    Service.find(whereConditions)
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder }),
     Service.countDocuments(whereConditions),
-  ]);
+  ])
 
   return {
     meta: {
@@ -83,32 +80,34 @@ const getAllServices = async (
       totalPages: Math.ceil(total / limit),
     },
     data: result,
-  };
-};
+  }
+}
 
 const getSingleService = async (id: string): Promise<IService> => {
   if (!Types.ObjectId.isValid(id)) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Service ID');
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Service ID')
   }
 
-  const result = await Service.findById(id);
+  const result = await Service.findById(id)
   if (!result) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
-      'Requested service not found, please try again with valid id'
-    );
+      'Requested service not found, please try again with valid id',
+    )
   }
 
-  return result;
-};
+  return result
+}
 
 const updateService = async (
   id: string,
-  payload: Partial<IService>
+  payload: Partial<IService>,
 ): Promise<IService | null> => {
   if (!Types.ObjectId.isValid(id)) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Service ID');
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Service ID')
   }
+
+  console.log({ payload })
 
   const result = await Service.findByIdAndUpdate(
     new Types.ObjectId(id),
@@ -116,34 +115,34 @@ const updateService = async (
     {
       new: true,
       runValidators: true,
-    }
-  );
+    },
+  )
 
   if (!result) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
-      'Requested service not found, please try again with valid id'
-    );
+      'Requested service not found, please try again with valid id',
+    )
   }
 
-  return result;
-};
+  return result
+}
 
 const deleteService = async (id: string): Promise<IService> => {
   if (!Types.ObjectId.isValid(id)) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Service ID');
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Service ID')
   }
 
-  const result = await Service.findByIdAndDelete(id);
+  const result = await Service.findByIdAndDelete(id)
   if (!result) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
-      'Something went wrong while deleting service, please try again with valid id.'
-    );
+      'Something went wrong while deleting service, please try again with valid id.',
+    )
   }
 
-  return result;
-};
+  return result
+}
 
 export const ServiceServices = {
   createService,
@@ -151,4 +150,4 @@ export const ServiceServices = {
   getSingleService,
   updateService,
   deleteService,
-};
+}
