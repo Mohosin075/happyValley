@@ -8,13 +8,13 @@ export interface IBookingFilterables {
   notes?: string
 }
 
-type BookingType = 'cleaning' | 'grocery' | 'maintenance'
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled'
 
 export interface IBooking {
   _id: Types.ObjectId
   user: Types.ObjectId
-  type: BookingType
+  service: Types.ObjectId
+  staff: Types.ObjectId
   date: Date
   startTime?: Date
   endTime?: Date
