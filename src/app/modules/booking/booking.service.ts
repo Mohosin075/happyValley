@@ -232,9 +232,6 @@ const updateBookingStatus = async (
   if (!Types.ObjectId.isValid(id)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID')
   }
-
-  console.log({ payload, id })
-
   const result = await Booking.findByIdAndUpdate(
     new Types.ObjectId(id),
     { $set: { status: payload } },
