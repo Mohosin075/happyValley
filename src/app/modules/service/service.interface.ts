@@ -13,6 +13,19 @@ export interface IService {
   description?: string
   servicesProvided: string[]
   occasions?: string[]
+  serviceType: [
+    {
+      title: string 
+      description: string
+    },
+  ]
+  fields: [ 
+    {
+      name: string
+      type: string | number | boolean
+      label: string  
+    },
+  ]
 }
 
 export type ServiceModel = Model<IService, {}, {}>

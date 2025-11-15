@@ -8,13 +8,18 @@ export interface IBookingFilterables {
   notes?: string
 }
 
-type BookingType = 'cleaning' | 'grocery' | 'maintenance'
-type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled'
+type BookingStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'completed'
+  | 'cancelled'
+  | 'rejected'
 
 export interface IBooking {
   _id: Types.ObjectId
   user: Types.ObjectId
-  type: BookingType
+  service: Types.ObjectId
+  staff: Types.ObjectId
   date: Date
   startTime?: Date
   endTime?: Date
@@ -24,6 +29,14 @@ export interface IBooking {
     state?: string
     zipCode?: string
   }
+  serviceType: {
+    title: string
+    description: string
+  }
+  fields: {
+    name: string
+    value?: string | number | boolean
+  }[]
   notes?: string
   status?: BookingStatus
 }
