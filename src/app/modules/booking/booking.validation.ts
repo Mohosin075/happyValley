@@ -1,25 +1,52 @@
 import { z } from 'zod'
 
+const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectId')
+
+const dateField = z.preprocess(val => {
+  if (!val) return undefined
+  const d = new Date(val as string)
+  return isNaN(d.getTime()) ? undefined : d
+}, z.date())
+
 export const BookingValidations = {
   create: z.object({
     body: z.object({
-      user: z.string().optional(),
-      type: z.enum(['cleaning', 'grocery', 'maintenance']),
-      date: z.date(),
-      startTime: z.date().optional(),
-      endTime: z.date().optional(),
-      address: z.object({
-        address: z.string(),
-        city: z.string().optional(),
-        state: z.string().optional(),
-        zipCode: z.string().optional(),
-      }),
-      notes: z.string().optional(),
-      status: z
-        .enum(['pending', 'confirmed', 'completed', 'cancelled'])
+      user: objectId.optional(),
+      service: objectId.optional(),
+      staff: objectId.optional(),
+
+      date: dateField, // required
+      startTime: dateField.optional(),
+      endTime: dateField.optional(),
+
+      address: z
+        .object({
+          address: z.string().optional(),
+          city: z.string().optional(),
+          state: z.string().optional(),
+          zipCode: z.string().optional(),
+        })
         .optional(),
-      recurring: z.string().optional(),
-      reminders: z.array(z.string()).optional(),
+
+      serviceType: z.object({
+        title: z.string(),
+        description: z.string().optional(),
+      }),
+
+      fields: z
+        .array(
+          z.object({
+            name: z.string(),
+            value: z.union([z.string(), z.number(), z.boolean()]).optional(),
+          }),
+        )
+        .default([]),
+
+      notes: z.string().optional(),
+
+      status: z
+        .enum(['pending', 'confirmed', 'completed', 'cancelled', 'rejected'])
+        .optional(),
     }),
   }),
 }

@@ -15,11 +15,11 @@ export interface IService {
   occasions?: string[]
   serviceType: [
     {
-      title: string
+      title: string 
       description: string
     },
   ]
-  fields: [
+  fields: [ 
     {
       name: string
       type: string | number | boolean
