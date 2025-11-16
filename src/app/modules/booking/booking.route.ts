@@ -59,6 +59,13 @@ router
     BookingController.updateBookingStatus,
   )
 
+router
+  .route('/weekly')
+  .get(
+    auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+    BookingController.getWeeklyBookingsByUser,
+  )
+
 // Single booking routes: /bookings/:id
 router
   .route('/:id')

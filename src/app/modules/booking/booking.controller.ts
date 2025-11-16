@@ -123,6 +123,22 @@ const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getWeeklyBookingsByUser = catchAsync(
+  async (req: Request, res: Response) => {
+    const { date } = req.query as { date: string }
+    const result = await BookingServices.getWeeklyBookingsByUser(
+      req.user!,
+      date,
+    )
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Bookings retrieved successfully',
+      data: result,
+    })
+  },
+)
+
 export const BookingController = {
   createBooking,
   updateBooking,
@@ -132,4 +148,5 @@ export const BookingController = {
   myServices,
   getBookingsByDate,
   updateBookingStatus,
+  getWeeklyBookingsByUser,
 }

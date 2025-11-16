@@ -83,7 +83,10 @@ const getAllReferrals = async (
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder })
-      .populate('referredBy'),
+      .populate({
+        path: 'referredBy',
+        select: 'email phone verified',
+      }),
     Referral.countDocuments(whereConditions),
   ])
 

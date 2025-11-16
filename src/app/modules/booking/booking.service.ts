@@ -7,6 +7,7 @@ import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
 import { bookingSearchableFields } from './booking.constants'
 import { Types } from 'mongoose'
+import { USER_ROLES } from '../../../enum/user'
 
 const createBooking = async (
   user: JwtPayload,
@@ -251,6 +252,55 @@ const updateBookingStatus = async (
   return result
 }
 
+const getWeeklyBookingsByUser = async (user: JwtPayload, date: string) => {
+  let baseDate = new Date()
+
+  if (date === 'next') {
+    // Move to next week
+    baseDate.setDate(baseDate.getDate() + 7)
+  } else if (date === 'prev') {
+    // Move to previous week
+    baseDate.setDate(baseDate.getDate() - 7)
+  } else if (date) {
+    // Use provided date
+    baseDate = new Date(date)
+  }
+
+  // Calculate week range (Mon–Sun)
+  const startOfWeek = new Date(baseDate)
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1)
+  startOfWeek.setHours(0, 0, 0, 0)
+
+  const endOfWeek = new Date(startOfWeek)
+  endOfWeek.setDate(startOfWeek.getDate() + 6)
+  endOfWeek.setHours(23, 59, 59, 999)
+
+  // Build filter
+  const filter: any = {
+    date: {
+      $gte: startOfWeek,
+      $lte: endOfWeek,
+    },
+  }
+
+  if (user.role === USER_ROLES.CLIENT) filter.user = user.authId
+  if (user.role === USER_ROLES.STAFF) filter.staff = user.authId
+
+  const result = await Booking.find(filter).sort({ date: 1 }).populate({
+    path: 'user',
+    select: '-password -__v -createdAt -updatedAt -authentication',
+  })
+
+  return {
+    total: result.length,
+    weekRange: {
+      startOfWeek,
+      endOfWeek,
+    },
+    data: result,
+  }
+}
+
 export const BookingServices = {
   createBooking,
   getAllBookings,
@@ -260,4 +310,6 @@ export const BookingServices = {
   myServices,
   getBookingsByDate,
   updateBookingStatus,
+
+  getWeeklyBookingsByUser,
 }
