@@ -12,6 +12,8 @@ const UserSchema = new Schema<IUser, UserModel>(
     businessName: { type: String },
     phone: { type: String },
     description: { type: String },
+    specialty: { type: String },
+    services: { type: [Schema.Types.ObjectId], ref: 'Service' },
 
     status: {
       type: String,

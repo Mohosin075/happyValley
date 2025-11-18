@@ -45,3 +45,17 @@ export interface IBooking {
 }
 
 export type BookingModel = Model<IBooking, {}, {}>
+
+// only for grocery booking
+
+export interface IGroceryChatSession {
+  user: Types.ObjectId
+  items: {
+    name: string
+    quantity: string
+  }[]
+  status: 'draft' | 'confirmed'
+}
+
+
+

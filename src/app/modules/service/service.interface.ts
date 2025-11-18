@@ -9,6 +9,7 @@ export interface IServiceFilterables {
 export interface IService {
   _id: Types.ObjectId
   createdBy: Types.ObjectId
+  staff: Types.ObjectId[]
   name: string
   description?: string
   servicesProvided: string[]

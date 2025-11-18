@@ -44,6 +44,8 @@ export interface IUser {
   businessName?: string
   phone?: string
   description?: string
+  specialty?: string
+  services: Types.ObjectId[]
 
   status: USER_STATUS // standardize statuses
   verified: boolean

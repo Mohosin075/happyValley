@@ -7,6 +7,7 @@ import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
 import { serviceSearchableFields } from './service.constants'
 import { Types } from 'mongoose'
+import { User } from '../user/user.model'
 
 const createService = async (
   user: JwtPayload,
@@ -19,6 +20,14 @@ const createService = async (
         StatusCodes.BAD_REQUEST,
         'Failed to create Service, please try again with valid data.',
       )
+    }
+
+    if (payload.staff) {
+      payload.staff.forEach(async staffId => {
+        await User.findByIdAndUpdate(staffId, {
+          $addToSet: { services: result._id },
+        })
+      })
     }
 
     return result
@@ -68,7 +77,8 @@ const getAllServices = async (
     Service.find(whereConditions)
       .skip(skip)
       .limit(limit)
-      .sort({ [sortBy]: sortOrder }),
+      .sort({ [sortBy]: sortOrder })
+      .populate({path:'staff', select:'name email phone'}),
     Service.countDocuments(whereConditions),
   ])
 
@@ -123,6 +133,14 @@ const updateService = async (
       StatusCodes.NOT_FOUND,
       'Requested service not found, please try again with valid id',
     )
+  }
+
+  if (payload.staff) {
+    payload.staff.forEach(async staffId => {
+      await User.findByIdAndUpdate(staffId, {
+        $addToSet: { services: result._id },
+      })
+    })
   }
 
   return result

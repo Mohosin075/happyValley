@@ -35,6 +35,7 @@ export const updateUserSchema = z.object({
       profile: z.string().url().optional(),
       phone: z.string().optional(),
       description: z.string().optional(),
+      specialty: z.string().optional(),
 
       address: addressSchema.optional(),
       location: pointSchema.optional(),

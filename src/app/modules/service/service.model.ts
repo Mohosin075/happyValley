@@ -4,6 +4,7 @@ import { IService, ServiceModel } from './service.interface'
 const serviceSchema = new Schema<IService, ServiceModel>(
   {
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    staff: { type: [Schema.Types.ObjectId], ref: 'User' },
     name: { type: String, required: true },
     description: { type: String, required: true },
     servicesProvided: { type: [String], required: true },

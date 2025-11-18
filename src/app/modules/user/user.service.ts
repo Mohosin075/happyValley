@@ -17,9 +17,10 @@ import {
   staffCreateTemplate,
 } from '../../../shared/emailTemplate'
 import { emailHelper } from '../../../helpers/emailHelper'
+import { Service } from '../service/service.model'
 
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
-  console.log({payload})
+  console.log({ payload })
   const isUserExist = await User.findOne({
     _id: user.authId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -45,6 +46,14 @@ const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
 
   if (!updatedProfile) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to update profile.')
+  }
+
+  if (payload.services) {
+    payload.services.forEach(async serviceId => {
+      await Service.findByIdAndUpdate(serviceId, {
+        $addToSet: { staff: updatedProfile._id },
+      })
+    })
   }
 
   return 'Profile updated successfully.'
@@ -105,6 +114,14 @@ const createStaff = async (
         StatusCodes.BAD_REQUEST,
         'Failed to create Staff, please try again with valid data.',
       )
+    }
+
+    if (payload.services) {
+      payload.services.forEach(async serviceId => {
+        await Service.findByIdAndUpdate(serviceId, {
+          $addToSet: { staff: result._id },
+        })
+      })
     }
 
     // send account verification email

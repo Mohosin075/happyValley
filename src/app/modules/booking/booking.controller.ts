@@ -105,6 +105,40 @@ const deleteBooking = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const { status } = req.body
+
+  if (!status) {
+    throw new Error('Status is required')
+  }
+
+  const result = await BookingServices.updateBookingStatus(id, status)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Booking status updated successfully',
+    data: result,
+  })
+})
+
+const getWeeklyBookingsByUser = catchAsync(
+  async (req: Request, res: Response) => {
+    const { date } = req.query as { date: string }
+    const result = await BookingServices.getWeeklyBookingsByUser(
+      req.user!,
+      date,
+    )
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Bookings retrieved successfully',
+      data: result,
+    })
+  },
+)
+
 export const BookingController = {
   createBooking,
   updateBooking,
@@ -113,4 +147,6 @@ export const BookingController = {
   deleteBooking,
   myServices,
   getBookingsByDate,
+  updateBookingStatus,
+  getWeeklyBookingsByUser,
 }

@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose'
-import { IBooking, BookingModel } from './booking.interface'
+import { IBooking, BookingModel, IGroceryChatSession } from './booking.interface'
 
 const bookingSchema = new Schema<IBooking, BookingModel>(
   {
@@ -63,3 +63,21 @@ const bookingSchema = new Schema<IBooking, BookingModel>(
 )
 
 export const Booking = model<IBooking, BookingModel>('Booking', bookingSchema)
+
+// only for grocery booking
+
+const groceryChatSchema = new Schema<IGroceryChatSession>(
+  {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    items: [
+      {
+        name: { type: String },
+        quantity: { type: String },
+      },
+    ],
+    status: { type: String, enum: ['draft', 'confirmed'], default: 'draft' },
+  },
+  { timestamps: true },
+)
+
+export const GroceryChat = model('GroceryChat', groceryChatSchema)
