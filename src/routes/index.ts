@@ -9,6 +9,7 @@ import { SubscriptionRoutes } from '../app/modules/subscription/subscription.rou
 import { ServiceRoutes } from '../app/modules/service/service.route'
 import { BookingRoutes } from '../app/modules/booking/booking.route'
 import { ReferralRoutes } from '../app/modules/referral/referral.route'
+import { AgreementRoutes } from '../app/modules/agreement/agreement.route'
 
 const router = express.Router()
 
@@ -22,7 +23,8 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/subscription', route: SubscriptionRoutes },
   { path: '/service', route: ServiceRoutes },
   { path: '/booking', route: BookingRoutes },
-  { path: '/referral', route: ReferralRoutes }]
+  { path: '/referral', route: ReferralRoutes },
+  { path: '/agreement', route: AgreementRoutes }]
 
 apiRoutes.forEach(route => {
   router.use(route.path, route.route)
