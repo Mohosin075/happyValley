@@ -1,0 +1,129 @@
+{
+  "info": {
+    "name": "Stats API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Stats",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2025-12-08T18:44:16.666Z\",\n  \"totalUsers\": 123,\n  \"activeUsers24h\": 123,\n  \"totalRevenue\": 123,\n  \"conversionRate\": 123,\n  \"apiRequests\": 123,\n  \"errorRate\": 123,\n  \"latency.p50\": 123,\n  \"latency.p90\": 123,\n  \"latency.p99\": 123,\n  \"webhookSuccessRate\": 123\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/stats",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "stats"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get All Statss",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/stats",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "stats"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Stats by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/stats/{{stats_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "stats",
+            "{{stats_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Stats",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2025-12-08T18:44:16.667Z\",\n  \"totalUsers\": 123,\n  \"activeUsers24h\": 123\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/stats/{{stats_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "stats",
+            "{{stats_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Delete Stats",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/stats/{{stats_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "stats",
+            "{{stats_id}}"
+          ]
+        }
+      }
+    }
+  ]
+}

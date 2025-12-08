@@ -56,6 +56,8 @@ const subscriptionSchema = new Schema<ISubscription, SubscriptionModel>(
   },
 )
 
+subscriptionSchema.index({ user: 1, status: 1, currentPeriodEnd: 1 })
+
 export const Subscription = model<ISubscription, SubscriptionModel>(
   'Subscription',
   subscriptionSchema,

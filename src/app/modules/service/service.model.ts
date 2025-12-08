@@ -15,4 +15,8 @@ const serviceSchema = new Schema<IService, ServiceModel>(
   },
 )
 
+serviceSchema.index({ name: 1 })
+serviceSchema.index({ servicesProvided: 1 })
+
+
 export const Service = model<IService, ServiceModel>('Service', serviceSchema)

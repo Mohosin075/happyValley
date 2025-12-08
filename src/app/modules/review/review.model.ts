@@ -31,4 +31,6 @@ const reviewSchema = new Schema<IReview, ReviewModel>(
   },
 )
 
+reviewSchema.index({ service: 1, status: 1 })
+
 export const Review = model<IReview, ReviewModel>('Review', reviewSchema)

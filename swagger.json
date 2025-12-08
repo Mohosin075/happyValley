@@ -1,0 +1,422 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API Documentation",
+    "version": "1.0.0",
+    "description": "Generated API documentation"
+  },
+  "paths": {
+    "/stats": {
+      "post": {
+        "tags": [
+          "Stats"
+        ],
+        "summary": "Create a new Stats",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatsCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stats created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Stats"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Stats"
+        ],
+        "summary": "Get all Statss",
+        "responses": {
+          "200": {
+            "description": "List of Statss retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Stats"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats/{id}": {
+      "get": {
+        "tags": [
+          "Stats"
+        ],
+        "summary": "Get Stats by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Stats ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stats retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Stats"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stats not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Stats"
+        ],
+        "summary": "Update Stats",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Stats ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatsUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stats updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Stats"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stats not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Stats"
+        ],
+        "summary": "Delete Stats",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Stats ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stats deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Stats"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stats not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Stats": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "date field"
+          },
+          "totalUsers": {
+            "type": "number",
+            "description": "totalUsers field"
+          },
+          "activeUsers24h": {
+            "type": "number",
+            "description": "activeUsers24h field"
+          },
+          "totalRevenue": {
+            "type": "number",
+            "description": "totalRevenue field"
+          },
+          "conversionRate": {
+            "type": "number",
+            "description": "conversionRate field"
+          },
+          "apiRequests": {
+            "type": "number",
+            "description": "apiRequests field"
+          },
+          "errorRate": {
+            "type": "number",
+            "description": "errorRate field"
+          },
+          "latency.p50": {
+            "type": "number",
+            "description": "latency.p50 field"
+          },
+          "latency.p90": {
+            "type": "number",
+            "description": "latency.p90 field"
+          },
+          "latency.p99": {
+            "type": "number",
+            "description": "latency.p99 field"
+          },
+          "webhookSuccessRate": {
+            "type": "number",
+            "description": "webhookSuccessRate field"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "_id",
+          "date",
+          "totalUsers",
+          "activeUsers24h",
+          "totalRevenue",
+          "conversionRate",
+          "apiRequests",
+          "errorRate",
+          "latency.p50",
+          "latency.p90",
+          "latency.p99",
+          "webhookSuccessRate"
+        ]
+      },
+      "StatsCreate": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "date field"
+          },
+          "totalUsers": {
+            "type": "number",
+            "description": "totalUsers field"
+          },
+          "activeUsers24h": {
+            "type": "number",
+            "description": "activeUsers24h field"
+          },
+          "totalRevenue": {
+            "type": "number",
+            "description": "totalRevenue field"
+          },
+          "conversionRate": {
+            "type": "number",
+            "description": "conversionRate field"
+          },
+          "apiRequests": {
+            "type": "number",
+            "description": "apiRequests field"
+          },
+          "errorRate": {
+            "type": "number",
+            "description": "errorRate field"
+          },
+          "latency.p50": {
+            "type": "number",
+            "description": "latency.p50 field"
+          },
+          "latency.p90": {
+            "type": "number",
+            "description": "latency.p90 field"
+          },
+          "latency.p99": {
+            "type": "number",
+            "description": "latency.p99 field"
+          },
+          "webhookSuccessRate": {
+            "type": "number",
+            "description": "webhookSuccessRate field"
+          }
+        },
+        "required": [
+          "date",
+          "totalUsers",
+          "activeUsers24h",
+          "totalRevenue",
+          "conversionRate",
+          "apiRequests",
+          "errorRate",
+          "latency.p50",
+          "latency.p90",
+          "latency.p99",
+          "webhookSuccessRate"
+        ]
+      },
+      "StatsUpdate": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "date field"
+          },
+          "totalUsers": {
+            "type": "number",
+            "description": "totalUsers field"
+          },
+          "activeUsers24h": {
+            "type": "number",
+            "description": "activeUsers24h field"
+          },
+          "totalRevenue": {
+            "type": "number",
+            "description": "totalRevenue field"
+          },
+          "conversionRate": {
+            "type": "number",
+            "description": "conversionRate field"
+          },
+          "apiRequests": {
+            "type": "number",
+            "description": "apiRequests field"
+          },
+          "errorRate": {
+            "type": "number",
+            "description": "errorRate field"
+          },
+          "latency.p50": {
+            "type": "number",
+            "description": "latency.p50 field"
+          },
+          "latency.p90": {
+            "type": "number",
+            "description": "latency.p90 field"
+          },
+          "latency.p99": {
+            "type": "number",
+            "description": "latency.p99 field"
+          },
+          "webhookSuccessRate": {
+            "type": "number",
+            "description": "webhookSuccessRate field"
+          }
+        }
+      }
+    }
+  }
+}

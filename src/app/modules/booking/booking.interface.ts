@@ -42,6 +42,7 @@ export interface IBooking {
   }[]
   notes?: string
   status?: BookingStatus
+  price: number
 }
 
 export type BookingModel = Model<IBooking, {}, {}>
@@ -56,6 +57,3 @@ export interface IGroceryChatSession {
   }[]
   status: 'draft' | 'confirmed'
 }
-
-
-
