@@ -70,3 +70,12 @@ export interface IServiceStats {
   totalBookings: number
   averagePrice: number
 }
+
+export interface IPaymentStats {
+  totalRevenue: number
+  completedPayments: number
+  pendingPayments: number
+  refundRequests: number
+  averageTransaction: number
+  revenueGrowth: number
+}

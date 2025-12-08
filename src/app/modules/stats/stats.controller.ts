@@ -110,6 +110,24 @@ const getServiceStats = async (req: Request, res: Response) => {
   }
 }
 
+const getPaymentStatsClean = async (req: Request, res: Response) => {
+  try {
+    const data = await StatsServices.getPaymentStatsClean()
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment stats data fetched successfully',
+      data,
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching payment stats data',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+}
+
 export const StatsController = {
   getDashboard,
   getServiceRequests,
@@ -117,4 +135,5 @@ export const StatsController = {
   getClientStats,
   getStaffStats,
   getServiceStats,
+  getPaymentStatsClean,
 }

@@ -21,4 +21,7 @@ router.get('/staff-stats', StatsController.getStaffStats)
 // GET /api/stats/service-stats - Service stats
 router.get('/service-stats', StatsController.getServiceStats)
 
+// GET /api/stats/payment-stats - Payment stats
+router.get('/payment-stats', StatsController.getPaymentStatsClean)
+
 export const StatsRoutes = router

@@ -4,7 +4,7 @@ import { Review } from '../review/review.model'
 import { Service } from '../service/service.model'
 import { Subscription } from '../subscription/subscription.model'
 import { User } from '../user/user.model'
-import { IServiceStats, IStaffStats } from './stats.interface'
+import { IPaymentStats, IServiceStats, IStaffStats } from './stats.interface'
 
 // Helper function to get month name
 const getMonthName = (monthIndex: number): string => {
@@ -543,6 +543,96 @@ const getServiceStats = async (): Promise<IServiceStats> => {
   }
 }
 
+// Helper function to get subscription stats
+const getSubscriptionStats = async () => {
+  const result = await Subscription.aggregate([
+    {
+      $match: {
+        status: 'active',
+        currentPeriodEnd: { $gte: new Date().toISOString() },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        revenue: { $sum: '$price' },
+        count: { $sum: 1 },
+      },
+    },
+  ])
+
+  return result[0] || { revenue: 0, count: 0 }
+}
+
+// Helper function to get booking stats by status
+const getBookingStats = async () => {
+  const result = await Booking.aggregate([
+    {
+      $group: {
+        _id: '$status',
+        revenue: { $sum: '$price' },
+        count: { $sum: 1 },
+      },
+    },
+  ])
+
+  return result.reduce((acc, curr) => {
+    acc[curr._id] = { revenue: curr.revenue, count: curr.count }
+    return acc
+  }, {})
+}
+
+// Main payment stats function
+const getPaymentStatsClean = async (): Promise<IPaymentStats> => {
+  const [subscription, bookings] = await Promise.all([
+    getSubscriptionStats(),
+    getBookingStats(),
+  ])
+
+  // Define status groups
+  const completedStatuses = [
+    'completed',
+    'confirmed',
+    'inProgress',
+    'scheduled',
+  ]
+  const pendingStatuses = ['requested', 'scheduled']
+
+  // Calculate totals
+  let totalRevenue = subscription.revenue
+  let totalBookings = 0
+  let pendingBookings = 0
+  let refundRequests = bookings.cancelled?.count || 0
+
+  completedStatuses.forEach(status => {
+    const booking = bookings[status]
+    if (booking) {
+      totalRevenue += booking.revenue
+      totalBookings += booking.count
+    }
+  })
+
+  pendingStatuses.forEach(status => {
+    const booking = bookings[status]
+    if (booking) {
+      pendingBookings += booking.count
+    }
+  })
+
+  const totalCompletedPayments = subscription.count + totalBookings
+  const averageTransaction =
+    totalCompletedPayments > 0 ? totalRevenue / totalCompletedPayments : 0
+
+  return {
+    totalRevenue: Math.round(totalRevenue * 100) / 100,
+    completedPayments: totalCompletedPayments,
+    pendingPayments: pendingBookings,
+    refundRequests: refundRequests,
+    averageTransaction: Math.round(averageTransaction * 100) / 100,
+    revenueGrowth: 0, // Add growth calculation separately if needed
+  }
+}
+
 export const StatsServices = {
   getDashboardData,
   getServiceRequests,
@@ -550,4 +640,5 @@ export const StatsServices = {
   getClientStats,
   getStaffStats,
   getServiceStats,
+  getPaymentStatsClean,
 }
