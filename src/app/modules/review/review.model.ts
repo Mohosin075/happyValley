@@ -3,6 +3,11 @@ import { IReview, ReviewModel } from './review.interface'
 
 const reviewSchema = new Schema<IReview, ReviewModel>(
   {
+    service: {
+      type: Schema.Types.ObjectId,
+      ref: 'Service',
+      required: true,
+    },
     reviewer: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -15,6 +20,11 @@ const reviewSchema = new Schema<IReview, ReviewModel>(
     },
     rating: { type: Number, required: true },
     review: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+    },
   },
   {
     timestamps: true,
