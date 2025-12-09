@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import { StatsServices } from './stats.service'
+import { JwtPayload } from 'jsonwebtoken'
 
 const getDashboard = async (req: Request, res: Response) => {
   try {
@@ -146,6 +147,44 @@ const getReviewSupportStatsSimple = async (req: Request, res: Response) => {
   }
 }
 
+const getProviderDashboard = async (req: Request, res: Response) => {
+  try {
+    const providerId = (req.user as JwtPayload).authId
+    const data = await StatsServices.getProviderDashboard(providerId)
+
+    res.status(200).json({
+      success: true,
+      message: 'Provider dashboard data fetched successfully',
+      data,
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching provider dashboard data',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+}
+
+const getProviderSummaryStats = async (req: Request, res: Response) => {
+  try {
+    const providerId = (req.user as JwtPayload).authId
+    const data = await StatsServices.getProviderSummaryStats(providerId)
+
+    res.status(200).json({
+      success: true,
+      message: 'Provider summary stats data fetched successfully',
+      data,
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching provider summary stats data',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+}
+
 export const StatsController = {
   getDashboard,
   getServiceRequests,
@@ -155,4 +194,6 @@ export const StatsController = {
   getServiceStats,
   getPaymentStatsClean,
   getReviewSupportStatsSimple,
+  getProviderDashboard,
+  getProviderSummaryStats,
 }

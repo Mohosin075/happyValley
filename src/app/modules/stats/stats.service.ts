@@ -5,7 +5,12 @@ import { Service } from '../service/service.model'
 import { Subscription } from '../subscription/subscription.model'
 import { Support } from '../support/support.model'
 import { User } from '../user/user.model'
-import { IPaymentStats, IServiceStats, IStaffStats } from './stats.interface'
+import {
+  IPaymentStats,
+  IProviderDashboard,
+  IServiceStats,
+  IStaffStats,
+} from './stats.interface'
 
 // Helper function to get month name
 const getMonthName = (monthIndex: number): string => {
@@ -710,6 +715,207 @@ const getReviewSupportStatsSimple = async (): Promise<{
   }
 }
 
+const getProviderDashboard = async (
+  providerId: string,
+): Promise<IProviderDashboard> => {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  // Calculate start of week (Monday)
+  const startOfWeek = new Date(today)
+  const day = today.getDay()
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1) // Adjust when day is Sunday
+  startOfWeek.setDate(diff)
+  startOfWeek.setHours(0, 0, 0, 0)
+
+  // Get all stats in parallel
+  const [
+    todayServices,
+    completedServices,
+    totalServices,
+    servicesThisWeek,
+    yourRatingData,
+    averageRatingData,
+    totalEarnings,
+  ] = await Promise.all([
+    // Today's services (bookings assigned to this provider today)
+    Booking.countDocuments({
+      staff: providerId,
+      date: { $gte: today, $lt: tomorrow },
+      status: { $nin: ['cancelled'] },
+    }),
+
+    // Completed services
+    Booking.countDocuments({
+      staff: providerId,
+      status: 'completed',
+    }),
+
+    // Total services (all bookings assigned to this provider)
+    Booking.countDocuments({
+      staff: providerId,
+      status: { $nin: ['cancelled'] },
+    }),
+
+    // Services this week
+    Booking.countDocuments({
+      staff: providerId,
+      date: { $gte: startOfWeek, $lt: tomorrow },
+      status: { $nin: ['cancelled'] },
+    }),
+
+    // Your rating (reviews for services provided by this staff)
+    getProviderRating(providerId),
+
+    // Average rating (average of all staff ratings)
+    getAverageStaffRating(),
+
+    // Total earnings
+    Booking.aggregate([
+      {
+        $match: {
+          staff: providerId,
+          status: { $nin: ['cancelled'] },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$price' },
+        },
+      },
+    ]),
+  ])
+
+  return {
+    todayServices,
+    completedServices,
+    totalServices,
+    servicesThisWeek, // New field added
+    yourRating: yourRatingData.averageRating,
+    averageRating: averageRatingData,
+    totalEarnings: totalEarnings[0]?.total || 0,
+  }
+}
+
+const getAverageStaffRating = async (): Promise<number> => {
+  // Get all services created by staff
+  const services = await Service.find({
+    createdBy: { $exists: true, $ne: null },
+  }).select('_id createdBy')
+
+  const serviceToStaffMap = new Map()
+  services.forEach(service => {
+    serviceToStaffMap.set(service._id.toString(), service.createdBy.toString())
+  })
+
+  const reviews = await Review.find({
+    service: { $in: Array.from(serviceToStaffMap.keys()) },
+    status: 'approved',
+  })
+
+  if (reviews.length === 0) return 0
+
+  const averageRating =
+    reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+  return Math.round(averageRating * 10) / 10
+}
+
+// Get provider's rating (reviews for services they provided)
+const getProviderRating = async (providerId: string) => {
+  // Get all services created by this provider
+  const services = await Service.find({ createdBy: providerId }).select('_id')
+  const serviceIds = services.map(service => service._id)
+
+  if (serviceIds.length === 0) {
+    return { averageRating: 0, totalReviews: 0 }
+  }
+
+  const reviews = await Review.aggregate([
+    {
+      $match: {
+        service: { $in: serviceIds },
+        status: 'approved',
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        averageRating: { $avg: '$rating' },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ])
+
+  return {
+    averageRating: reviews[0]?.averageRating
+      ? Math.round(reviews[0].averageRating * 10) / 10
+      : 0,
+    totalReviews: reviews[0]?.totalReviews || 0,
+  }
+}
+
+// Get provider summary stats (Total Services, Scheduled, Completed, Earnings)
+const getProviderSummaryStats = async (
+  providerId: string,
+): Promise<{
+  totalServices: number
+  scheduledServices: number
+  completedServices: number
+  earnings: number
+}> => {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  // Get all stats in parallel
+  const [totalServices, scheduledServices, completedServices, earnings] =
+    await Promise.all([
+      // Total Services (all bookings assigned to this provider, excluding cancelled)
+      Booking.countDocuments({
+        staff: providerId,
+        status: { $nin: ['cancelled'] },
+      }),
+
+      // Scheduled Services (upcoming bookings)
+      Booking.countDocuments({
+        staff: providerId,
+        date: { $gte: today },
+        status: { $in: ['confirmed', 'scheduled', 'requested'] },
+      }),
+
+      // Completed Services
+      Booking.countDocuments({
+        staff: providerId,
+        status: 'completed',
+      }),
+
+      // Total Earnings (from all non-cancelled bookings)
+      Booking.aggregate([
+        {
+          $match: {
+            staff: providerId,
+            status: { $nin: ['cancelled'] },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$price' },
+          },
+        },
+      ]),
+    ])
+
+  return {
+    totalServices,
+    scheduledServices,
+    completedServices,
+    earnings: earnings[0]?.total || 0,
+  }
+}
+
 export const StatsServices = {
   getDashboardData,
   getServiceRequests,
@@ -719,4 +925,6 @@ export const StatsServices = {
   getServiceStats,
   getPaymentStatsClean,
   getReviewSupportStatsSimple,
+  getProviderDashboard,
+  getProviderSummaryStats,
 }

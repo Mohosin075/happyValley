@@ -79,3 +79,38 @@ export interface IPaymentStats {
   averageTransaction: number
   revenueGrowth: number
 }
+
+// interfaces/provider-dashboard.interface.ts
+export interface IProviderDashboard {
+  todayServices: number
+  completedServices: number
+  totalServices: number
+  yourRating: number
+  averageRating: number
+  totalEarnings: number
+  servicesThisWeek: number // New field
+}
+
+export interface IProviderMonthlyPerformance {
+  month: string
+  bookings: number
+  revenue: number
+}
+
+export interface IProviderSchedule {
+  id: string
+  date: Date
+  time: string
+  customer: string
+  phone: string
+  service: string
+  status: string
+  address: string
+  serviceType: string
+}
+
+export interface IProviderCompletionRate {
+  totalBookings: number
+  completedBookings: number
+  completionRate: number
+}
