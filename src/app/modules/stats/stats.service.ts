@@ -3,6 +3,7 @@ import { Booking } from '../booking/booking.model'
 import { Review } from '../review/review.model'
 import { Service } from '../service/service.model'
 import { Subscription } from '../subscription/subscription.model'
+import { Support } from '../support/support.model'
 import { User } from '../user/user.model'
 import { IPaymentStats, IServiceStats, IStaffStats } from './stats.interface'
 
@@ -633,6 +634,82 @@ const getPaymentStatsClean = async (): Promise<IPaymentStats> => {
   }
 }
 
+const getReviewSupportStatsSimple = async (): Promise<{
+  averageRating: number
+  pendingReviews: number
+  openIssues: number
+  satisfactionRate: number
+}> => {
+  const [reviewData, supportData] = await Promise.all([
+    // Get review stats
+    Review.aggregate([
+      {
+        $facet: {
+          averageRating: [
+            {
+              $group: {
+                _id: null,
+                avg: { $avg: '$rating' },
+              },
+            },
+          ],
+          pendingCount: [
+            {
+              $match: { status: 'pending' },
+            },
+            {
+              $count: 'count',
+            },
+          ],
+          approvedRatings: [
+            {
+              $match: { status: 'approved' },
+            },
+            {
+              $group: {
+                _id: null,
+                avg: { $avg: '$rating' },
+                count: { $sum: 1 },
+              },
+            },
+          ],
+        },
+      },
+    ]),
+
+    // Get support stats
+    Support.aggregate([
+      {
+        $match: {
+          status: { $in: ['open', 'in_progress'] }, // Assuming these are open statuses
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+        },
+      },
+    ]),
+  ])
+
+  const avgRating = reviewData[0].averageRating[0]?.avg || 0
+  const pendingReviews = reviewData[0].pendingCount[0]?.count || 0
+  const approvedStats = reviewData[0].approvedRatings[0] || { avg: 0, count: 0 }
+  const openIssues = supportData[0]?.count || 0
+
+  // Calculate satisfaction rate (percentage of 4+ star average)
+  const satisfactionRate =
+    approvedStats.avg >= 4 ? 100 : (approvedStats.avg / 5) * 100
+
+  return {
+    averageRating: Math.round(avgRating * 10) / 10,
+    pendingReviews,
+    openIssues,
+    satisfactionRate: Math.round(satisfactionRate * 10) / 10,
+  }
+}
+
 export const StatsServices = {
   getDashboardData,
   getServiceRequests,
@@ -641,4 +718,5 @@ export const StatsServices = {
   getStaffStats,
   getServiceStats,
   getPaymentStatsClean,
+  getReviewSupportStatsSimple,
 }

@@ -128,6 +128,24 @@ const getPaymentStatsClean = async (req: Request, res: Response) => {
   }
 }
 
+const getReviewSupportStatsSimple = async (req: Request, res: Response) => {
+  try {
+    const data = await StatsServices.getReviewSupportStatsSimple()
+
+    res.status(200).json({
+      success: true,
+      message: 'Review support stats data fetched successfully',
+      data,
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching review support stats data',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+}
+
 export const StatsController = {
   getDashboard,
   getServiceRequests,
@@ -136,4 +154,5 @@ export const StatsController = {
   getStaffStats,
   getServiceStats,
   getPaymentStatsClean,
+  getReviewSupportStatsSimple,
 }

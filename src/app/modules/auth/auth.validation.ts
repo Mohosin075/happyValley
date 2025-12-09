@@ -148,7 +148,7 @@ const createUserZodSchema = z.object({
         return p?.isValid() ?? false
       },
       { message: 'Invalid phone number' },
-    ),
+    ).optional(),
     address: addressSchema.optional(),
     // role: z.enum([USER_ROLES.ADMIN, USER_ROLES.CLIENT, USER_ROLES.STAFF], {
     //   message: 'Role must be one of admin, user, creator',
