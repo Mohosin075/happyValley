@@ -9,11 +9,32 @@ import { serviceSearchableFields } from './service.constants'
 import { Types } from 'mongoose'
 import { User } from '../user/user.model'
 
-const createService = async (
+export const createService = async (
   user: JwtPayload,
   payload: IService,
 ): Promise<IService> => {
   try {
+    // 1. Validate staff IDs
+    if (payload.staff && payload.staff.length > 0) {
+      for (const staffId of payload.staff) {
+        if (!Types.ObjectId.isValid(staffId)) {
+          throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            `Invalid staff ID: ${staffId}`,
+          )
+        }
+
+        const staffExists = await User.exists({ _id: staffId })
+        if (!staffExists) {
+          throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            `Staff not found: ${staffId}`,
+          )
+        }
+      }
+    }
+
+    // 2. Create the service
     const result = await Service.create({ ...payload, createdBy: user.authId })
     if (!result) {
       throw new ApiError(
@@ -22,12 +43,15 @@ const createService = async (
       )
     }
 
-    if (payload.staff) {
-      payload.staff.forEach(async staffId => {
-        await User.findByIdAndUpdate(staffId, {
-          $addToSet: { services: result._id },
-        })
-      })
+    // 3. Add service to staff users
+    if (payload.staff && payload.staff.length > 0) {
+      await Promise.all(
+        payload.staff.map(staffId =>
+          User.findByIdAndUpdate(staffId, {
+            $addToSet: { services: result._id },
+          }),
+        ),
+      )
     }
 
     return result
@@ -78,7 +102,7 @@ const getAllServices = async (
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder })
-      .populate({path:'staff', select:'name email phone'}),
+      .populate({ path: 'staff', select: 'name email phone' }),
     Service.countDocuments(whereConditions),
   ])
 
