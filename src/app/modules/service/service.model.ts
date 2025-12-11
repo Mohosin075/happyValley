@@ -7,6 +7,7 @@ const serviceSchema = new Schema<IService, ServiceModel>(
     staff: { type: [Schema.Types.ObjectId], ref: 'User', default: [] },
     name: { type: String, required: true },
     description: { type: String },
+    image: { type: String },
     servicesProvided: { type: [String], required: true },
     occasions: { type: [String], default: [] },
     serviceType: [

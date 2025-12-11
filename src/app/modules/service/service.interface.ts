@@ -12,19 +12,20 @@ export interface IService {
   staff: Types.ObjectId[]
   name: string
   description?: string
+  image?: string
   servicesProvided: string[]
   occasions?: string[]
   serviceType: [
     {
-      title: string 
+      title: string
       description: string
     },
   ]
-  fields: [ 
+  fields: [
     {
       name: string
       type: string | number | boolean
-      label: string  
+      label: string
     },
   ]
 }
