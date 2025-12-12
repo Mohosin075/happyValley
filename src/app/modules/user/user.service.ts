@@ -18,6 +18,9 @@ import {
 } from '../../../shared/emailTemplate'
 import { emailHelper } from '../../../helpers/emailHelper'
 import { Service } from '../service/service.model'
+import { SERVICE_STATUS } from '../../../enum/service'
+import { Review } from '../review/review.model'
+import { Booking } from '../booking/booking.model'
 
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   console.log({ payload })
@@ -380,6 +383,75 @@ const getStaffById = async (userId: string): Promise<IUser | null> => {
   return user
 }
 
+export const getStaffsByServiceId = async (serviceId: string) => {
+  // 1. Check if service exists
+  const service = await Service.findOne({
+    _id: serviceId,
+    status: { $nin: [SERVICE_STATUS.DELETED] },
+  })
+    .populate({
+      path: 'staff',
+      select: 'name email role _id profile',
+    })
+    .lean()
+
+  if (!service) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Service not found.')
+  }
+
+  const staffIds = service.staff?.map(s => s._id) || []
+
+  // 2. Fetch rating + completed bookings
+  const [ratings, completed] = await Promise.all([
+    // ⭐ Staff Ratings
+    Review.aggregate([
+      { $match: { reviewee: { $in: staffIds }, status: 'approved' } },
+      {
+        $group: {
+          _id: '$reviewee',
+          avgRating: { $avg: '$rating' },
+        },
+      },
+    ]),
+
+    // ✅ Completed Services Count
+    Booking.aggregate([
+      {
+        $match: {
+          staff: { $in: staffIds },
+          status: 'completed',
+        },
+      },
+      {
+        $group: {
+          _id: '$staff',
+          completedCount: { $sum: 1 },
+        },
+      },
+    ]),
+  ])
+
+  // 3. Convert arrays to maps for faster lookup
+  const ratingMap = new Map(ratings.map(r => [String(r._id), r.avgRating]))
+
+  const completedMap = new Map(
+    completed.map(c => [String(c._id), c.completedCount]),
+  )
+
+  // 4. Attach data to staff list
+  const staffData = service.staff.map(staff => ({
+    ...staff,
+    avgRating: ratingMap.get(String(staff._id)) || 0,
+    completedServices: completedMap.get(String(staff._id)) || 0,
+  }))
+
+  return {
+    serviceId,
+    totalStaff: staffData.length,
+    staffs: staffData,
+  }
+}
+
 export const UserServices = {
   updateProfile,
   createAdmin,
@@ -393,4 +465,5 @@ export const UserServices = {
 
   getAllStaff,
   getStaffById,
+  getStaffsByServiceId,
 }

@@ -83,6 +83,13 @@ router.get(
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   UserController.getAllStaff,
 )
+
+router.get(
+  '/staff/service/:serviceId',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  UserController.getStaffsByServiceId,
+)
+
 router.get(
   '/staff/:userId',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),

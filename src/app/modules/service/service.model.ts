@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose'
 import { IService, ServiceModel } from './service.interface'
+import { SERVICE_STATUS } from '../../../enum/service'
 
 const serviceSchema = new Schema<IService, ServiceModel>(
   {
@@ -10,6 +11,7 @@ const serviceSchema = new Schema<IService, ServiceModel>(
     image: { type: String },
     servicesProvided: { type: [String], required: true },
     occasions: { type: [String], default: [] },
+    status: { type: String, default: SERVICE_STATUS.ACTIVE },
     serviceType: [
       {
         title: { type: String, required: true },

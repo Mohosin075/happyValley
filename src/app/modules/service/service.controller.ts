@@ -6,9 +6,14 @@ import { StatusCodes } from 'http-status-codes'
 import pick from '../../../shared/pick'
 import { serviceFilterables } from './service.constants'
 import { paginationFields } from '../../../interfaces/pagination'
+import ApiError from '../../../errors/ApiError'
 
 const createService = catchAsync(async (req: Request, res: Response) => {
   // const serviceData = req.body;
+
+  if (!req.body.images || req.body.images.length === 0) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'image is required')
+  }
 
   const serviceData = { ...req.body, image: req.body.images[0] }
 

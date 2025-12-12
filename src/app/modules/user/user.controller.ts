@@ -131,6 +131,17 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getStaffsByServiceId = catchAsync(async (req: Request, res: Response) => {
+  const { serviceId } = req.params
+  const result = await UserServices.getStaffsByServiceId(serviceId)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Staffs retrieved successfully',
+    data: result,
+  })
+})
+
 export const UserController = {
   updateProfile,
   getAllUsers,
@@ -143,4 +154,5 @@ export const UserController = {
 
   getAllStaff,
   getStaffById,
+  getStaffsByServiceId,
 }
