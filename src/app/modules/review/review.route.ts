@@ -11,20 +11,19 @@ const router = express.Router()
 // but here it's a param so keeping separate routes)
 router
   .route('/')
-  .get(auth(...Object.values(USER_ROLES)), ReviewController.getAllReviews)
+  .get(ReviewController.getAllReviews)
   .post(
     auth(...Object.values(USER_ROLES)),
     validateRequest(createReviewSchema),
     ReviewController.createReview,
   )
 
-
 // router.route('/:type')
 //   .get(auth(...roles), ReviewController.getAllReviews);
 
 router
   .route('/:id')
-  .get(auth(...Object.values(USER_ROLES)), ReviewController.getSingleReview)
+  .get(ReviewController.getSingleReview)
   .patch(
     auth(...Object.values(USER_ROLES)),
     validateRequest(updateReviewSchema),
