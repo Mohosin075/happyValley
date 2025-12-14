@@ -11,13 +11,20 @@ const reviewSchema = new Schema<IReview, ReviewModel>(
     reviewer: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      populate: { path: 'reviewer', select: 'name lastName fullName profile' },
+      populate: {
+        path: 'reviewer',
+        select: 'name lastName fullName profile role',
+      },
     },
     reviewee: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      populate: { path: 'reviewee', select: 'name lastName fullName profile' },
+      populate: {
+        path: 'reviewee',
+        select: 'name lastName fullName profile role',
+      },
     },
+    title: { type: String, required: true },
     rating: { type: Number, required: true },
     review: { type: String, required: true },
     status: {

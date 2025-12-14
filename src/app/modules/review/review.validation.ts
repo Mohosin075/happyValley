@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const createReviewSchema = z.object({
   body: z.object({
     service: z.string(),
+    title: z.string(),
     reviewee: z.string().optional(),
     rating: z.number(),
     review: z.string(),
@@ -12,6 +13,7 @@ export const createReviewSchema = z.object({
 
 export const updateReviewSchema = z.object({
   body: z.object({
+    title: z.string().optional(),
     reviewee: z.string().optional(),
     rating: z.number().optional(),
     review: z.string().optional(),
