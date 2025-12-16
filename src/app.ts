@@ -11,7 +11,6 @@ import globalErrorHandler from './app/middleware/globalErrorHandler'
 import handleStripeWebhook from './stripe/handleStripeWebhook'
 import config from './config'
 
-
 const app = express()
 
 // -------------------- Stripe Webhook --------------------
@@ -39,7 +38,14 @@ app.use(passport.session())
 // CORS
 app.use(
   cors({
-    origin: '*',
+    origin: [
+      '*',
+      'http://10.10.7.11:5173',
+      'http://localhost:60851',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:3001',
+    ],
     credentials: true,
   }),
 )
@@ -58,7 +64,6 @@ app.use(Morgan.errorHandler)
 // -------------------- Static Files --------------------
 app.use(express.static('uploads'))
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
-
 
 // -------------------- API Routes --------------------
 
@@ -112,12 +117,8 @@ app.get('/', (req: Request, res: Response) => {
         </p>
       </div>
     </div>
-  `);
-});
-
-
-
-
+  `)
+})
 
 // -------------------- Global Error Handler --------------------
 app.use(globalErrorHandler)

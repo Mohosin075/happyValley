@@ -28,7 +28,6 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/referral', route: ReferralRoutes },
   { path: '/agreement', route: AgreementRoutes },
   { path: '/review', route: ReviewRoutes },
-,
   { path: '/stats', route: StatsRoutes }]
 
 apiRoutes.forEach(route => {
