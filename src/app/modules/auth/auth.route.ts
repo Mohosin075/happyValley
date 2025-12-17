@@ -69,14 +69,24 @@ router.post(
 
 router.post(
   '/change-password',
-  auth(USER_ROLES.ADMIN, USER_ROLES.STAFF, USER_ROLES.CLIENT),
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.STAFF,
+    USER_ROLES.CLIENT,
+    USER_ROLES.SUPER_ADMIN,
+  ),
   validateRequest(AuthValidations.changePasswordZodSchema),
   CustomAuthController.changePassword,
 )
 
 router.delete(
   '/delete-account',
-  auth(USER_ROLES.ADMIN, USER_ROLES.STAFF, USER_ROLES.CLIENT),
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.STAFF,
+    USER_ROLES.CLIENT,
+    USER_ROLES.SUPER_ADMIN,
+  ),
   validateRequest(AuthValidations.deleteAccount),
   CustomAuthController.deleteAccount,
 )
@@ -90,9 +100,13 @@ router.post(
 
 router.post(
   '/logout',
-  auth(USER_ROLES.ADMIN, USER_ROLES.STAFF, USER_ROLES.CLIENT),
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.STAFF,
+    USER_ROLES.CLIENT,
+    USER_ROLES.SUPER_ADMIN,
+  ),
   CustomAuthController.logout,
 )
-
 
 export const AuthRoutes = router
