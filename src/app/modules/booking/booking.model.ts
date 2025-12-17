@@ -9,7 +9,7 @@ const bookingSchema = new Schema<IBooking, BookingModel>(
   {
     user: { type: Schema.Types.ObjectId, ref: 'User' },
     service: { type: Schema.Types.ObjectId, ref: 'Service', required: true },
-    staff: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    staff: { type: Schema.Types.ObjectId, ref: 'User' },
 
     date: { type: Date, required: true },
     startTime: { type: String },

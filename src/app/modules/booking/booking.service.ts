@@ -2,6 +2,7 @@ import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../../errors/ApiError'
 import { IBookingFilterables, IBooking } from './booking.interface'
 import { Booking } from './booking.model'
+import { Service } from '../service/service.model'
 import { JwtPayload } from 'jsonwebtoken'
 import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
@@ -14,6 +15,47 @@ const createBooking = async (
   payload: IBooking,
 ): Promise<IBooking> => {
   try {
+    // Validate if staff is assigned to the service
+    if (payload.staff) {
+      const service = await Service.findById(payload.service)
+      if (!service) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Service not found')
+      }
+
+      // Check if staff is in service.staff
+      const isStaffValid = service.staff.some(
+        (s: any) => s.toString() === payload.staff!.toString(),
+      )
+
+      if (!isStaffValid) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'Selected staff is not assigned to this service',
+        )
+      }
+
+      // Check for conflicts (basic check: same staff, same date/time)
+      // Note: This assumes exact match. For ranges, we'd need duration.
+      if (payload.date && payload.startTime) {
+        const existingBooking = await Booking.findOne({
+          staff: payload.staff,
+          date: payload.date,
+          startTime: payload.startTime,
+          status: { $in: ['scheduled', 'confirmed'] },
+        })
+
+        if (existingBooking) {
+           throw new ApiError(
+            StatusCodes.CONFLICT,
+            'Staff is already booked at this time',
+          )
+        }
+      }
+
+      // If staff is valid and no conflict, set status to scheduled
+      payload.status = 'scheduled'
+    }
+
     const result = await Booking.create({ ...payload, user: user.authId })
     if (!result) {
       throw new ApiError(
@@ -115,9 +157,34 @@ const updateBooking = async (
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID')
   }
 
+
+  const updateData = { ...payload }
+
+  // If staff is being assigned and status is currently 'requested', update to 'scheduled'
+  if (updateData.staff) {
+    const booking = await Booking.findById(id)
+    if (booking && booking.status === 'requested') {
+      updateData.status = 'scheduled'
+    }
+  }
+
+  // If status is changing to 'inProgress', set startTime
+  if (updateData.status === 'inProgress') {
+    const now = new Date()
+    // format HH:mm
+    updateData.startTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+  }
+
+  // If status is changing to 'completed', set endTime
+  if (updateData.status === 'completed') {
+    const now = new Date()
+    // format HH:mm
+    updateData.endTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+  }
+
   const result = await Booking.findByIdAndUpdate(
     new Types.ObjectId(id),
-    { $set: payload },
+    { $set: updateData },
     {
       new: true,
       runValidators: true,
@@ -228,14 +295,28 @@ const getBookingsByDate = async (date: string): Promise<IBooking[]> => {
 
 const updateBookingStatus = async (
   id: string,
-  payload: Partial<IBooking>,
+  status: string,
 ): Promise<IBooking | null> => {
   if (!Types.ObjectId.isValid(id)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID')
   }
+
+  const updateData: any = { status }
+
+  // Logic for time tracking based on status change
+  if (status === 'inProgress') {
+    const now = new Date()
+    updateData.startTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+  }
+
+  if (status === 'completed') {
+    const now = new Date()
+    updateData.endTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+  }
+
   const result = await Booking.findByIdAndUpdate(
     new Types.ObjectId(id),
-    { $set: { status: payload } },
+    { $set: updateData },
     {
       new: true,
       runValidators: true,

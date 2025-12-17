@@ -122,7 +122,10 @@ const getSingleService = async (id: string): Promise<IService> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Service ID')
   }
 
-  const result = await Service.findById(id)
+  const result = await Service.findById(id).populate({
+    path: 'staff',
+    select: 'name email phone profile',
+  })
   if (!result) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
