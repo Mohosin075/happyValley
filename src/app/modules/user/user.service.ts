@@ -23,7 +23,6 @@ import { Review } from '../review/review.model'
 import { Booking } from '../booking/booking.model'
 
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
-  console.log({ payload })
   const isUserExist = await User.findOne({
     _id: user.authId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -36,7 +35,7 @@ const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   if (isUserExist.profile) {
     const url = new URL(isUserExist.profile)
     const key = url.pathname.substring(1)
-    await S3Helper.deleteFromS3(key)
+    // await S3Helper.deleteFromS3(key)
   }
 
   const updatedProfile = await User.findOneAndUpdate(
@@ -151,56 +150,107 @@ const createStaff = async (
 
 const getAllUsers = async (
   paginationOptions: IPaginationOptions,
-  filterables: IUserFilterables = {}, // safe default
+  filterables: IUserFilterables = {},
 ) => {
   const { searchTerm, ...otherFilters } = filterables
   const { page, skip, limit, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
 
-  const andConditions: any[] = []
+  const matchConditions: any[] = []
 
-  // 🔍 Search functionality
+  // 🔍 Search
   if (searchTerm) {
-    andConditions.push({
+    matchConditions.push({
       $or: userFilterableFields.map(field => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     })
   }
 
-  // 🎯 Dynamic filters (role, verified, etc.)
-  if (Object.keys(otherFilters).length) {
-    for (const [key, value] of Object.entries(otherFilters)) {
-      andConditions.push({ [key]: value })
-    }
+  // 🎯 Filters
+  for (const [key, value] of Object.entries(otherFilters)) {
+    matchConditions.push({ [key]: value })
   }
 
-  // 🛑 Always exclude deleted users
-  andConditions.push({
+  // 🛑 Exclude deleted users
+  matchConditions.push({
     status: { $nin: [USER_STATUS.DELETED, null] },
   })
 
-  // 💡 Final query object
-  const whereConditions = andConditions.length ? { $and: andConditions } : {}
+  const matchStage = matchConditions.length ? { $and: matchConditions } : {}
 
-  const [result, total] = await Promise.all([
-    User.find(whereConditions)
-      .skip(skip)
-      .limit(limit)
-      .sort(sortBy ? { [sortBy]: sortOrder } : { createdAt: -1 })
-      .select('-password -authentication -__v'),
+  const pipeline = [
+    { $match: matchStage },
 
-    User.countDocuments(whereConditions),
+    // 🔗 Join completed bookings (USER → bookings)
+    {
+      $lookup: {
+        from: 'bookings',
+        let: { userId: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ['$user', '$$userId'] },
+                  { $eq: ['$status', 'completed'] },
+                ],
+              },
+            },
+          },
+          {
+            $project: { price: 1 },
+          },
+        ],
+        as: 'completedBookings',
+      },
+    },
+
+    // 🧮 Metrics
+    {
+      $addFields: {
+        completedServiceCount: { $size: '$completedBookings' },
+        totalSpent: {
+          $sum: '$completedBookings.price',
+        },
+      },
+    },
+
+    // 🚫 Cleanup
+    {
+      $project: {
+        password: 0,
+        authentication: 0,
+        __v: 0,
+        completedBookings: 0,
+      },
+    },
+
+    // 📊 Sorting
+    {
+      $sort: sortBy
+        ? { [sortBy]: sortOrder === 'asc' ? 1 : -1 }
+        : { createdAt: -1 },
+    },
+
+    // 📄 Pagination
+    { $skip: skip },
+    { $limit: limit },
+  ]
+
+  const [data, totalResult] = await Promise.all([
+    User.aggregate(pipeline),
+    User.countDocuments(matchStage),
   ])
 
   return {
     meta: {
       page,
       limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      total: totalResult,
+      totalPages: Math.ceil(totalResult / limit),
     },
-    data: result,
+    data,
   }
 }
 

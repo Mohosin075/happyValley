@@ -36,6 +36,7 @@ export const updateUserSchema = z.object({
       phone: z.string().optional(),
       description: z.string().optional(),
       specialty: z.string().optional(),
+      images: z.array(z.string()).optional(),
 
       address: addressSchema.optional(),
       location: pointSchema.optional(),

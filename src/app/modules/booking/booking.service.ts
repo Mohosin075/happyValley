@@ -9,6 +9,7 @@ import { paginationHelper } from '../../../helpers/paginationHelper'
 import { bookingSearchableFields } from './booking.constants'
 import { Types } from 'mongoose'
 import { USER_ROLES } from '../../../enum/user'
+import { AvailabilityServices } from '../availability/availability.service'
 
 const createBooking = async (
   user: JwtPayload,
@@ -34,20 +35,23 @@ const createBooking = async (
         )
       }
 
-      // Check for conflicts (basic check: same staff, same date/time)
-      // Note: This assumes exact match. For ranges, we'd need duration.
-      if (payload.date && payload.startTime) {
+      // Check for conflicts: One staff per client per day
+      if (payload.date) {
+        const startOfDay = new Date(payload.date)
+        startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date(payload.date)
+        endOfDay.setHours(23, 59, 59, 999)
+
         const existingBooking = await Booking.findOne({
           staff: payload.staff,
-          date: payload.date,
-          startTime: payload.startTime,
-          status: { $in: ['scheduled', 'confirmed'] },
+          date: { $gte: startOfDay, $lte: endOfDay },
+          status: { $in: ['scheduled', 'confirmed', 'inProgress'] },
         })
 
         if (existingBooking) {
-           throw new ApiError(
+          throw new ApiError(
             StatusCodes.CONFLICT,
-            'Staff is already booked at this time',
+            'Staff is already booked for this entire day.',
           )
         }
       }
@@ -61,6 +65,15 @@ const createBooking = async (
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
         'Failed to create Booking, please try again with valid data.',
+      )
+    }
+
+    // Update availability
+    if (payload.staff && payload.date) {
+      await AvailabilityServices.updateAvailability(
+        payload.staff,
+        payload.date,
+        true,
       )
     }
 
@@ -328,6 +341,29 @@ const updateBookingStatus = async (
       StatusCodes.NOT_FOUND,
       'Requested booking not found, please try again with valid id',
     )
+  }
+
+  // Handle availability update on cancellation
+  if (status === 'cancelled' && result.staff && result.date) {
+    // Check if there are other active bookings for this staff on this date
+    const startOfDay = new Date(result.date)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(result.date)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    const activeBookingsCount = await Booking.countDocuments({
+      staff: result.staff,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ['confirmed', 'scheduled', 'inProgress'] }, // confirmed/scheduled/inProgress are active
+    })
+
+    if (activeBookingsCount === 0) {
+      await AvailabilityServices.updateAvailability(
+        result.staff,
+        result.date,
+        false,
+      )
+    }
   }
 
   return result
