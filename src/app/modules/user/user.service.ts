@@ -1,3 +1,4 @@
+import { PipelineStage } from 'mongoose'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../../errors/ApiError'
 import { IUser, IUserFilterables } from './user.interface'
@@ -179,7 +180,7 @@ const getAllUsers = async (
 
   const matchStage = matchConditions.length ? { $and: matchConditions } : {}
 
-  const pipeline = [
+  const pipeline: PipelineStage[] = [
     { $match: matchStage },
 
     // 🔗 Join completed bookings (USER → bookings)
