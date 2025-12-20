@@ -20,6 +20,11 @@ const paymentSchema = new Schema<IPayment, PaymentModel>(
       type: Number,
       required: true,
     },
+    paymentType: {
+      type: String,
+      enum: ['booking_fee', 'service_charge', 'subscription'],
+      required: true,
+    },
     transactionId: {
       type: String,
       required: true,

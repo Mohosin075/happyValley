@@ -5,6 +5,7 @@ export type IPayment = {
   booking?: Types.ObjectId
   subscription?: Types.ObjectId
   amount: number
+  paymentType: 'booking_fee' | 'service_charge' | 'subscription'
   transactionId: string
   status: 'pending' | 'completed' | 'failed'
   paymentGateway: 'stripe'

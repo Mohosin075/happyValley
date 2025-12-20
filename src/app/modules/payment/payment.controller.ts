@@ -5,9 +5,9 @@ import { StatusCodes } from 'http-status-codes'
 import { PaymentService } from './payment.service'
 import { JwtPayload } from 'jsonwebtoken'
 
-const createBookingSession = catchAsync(async (req: Request, res: Response) => {
+const createBookingFeeSession = catchAsync(async (req: Request, res: Response) => {
   const { bookingId } = req.params
-  const result = await PaymentService.createBookingCheckoutSession(
+  const result = await PaymentService.createBookingFeeCheckoutSession(
     req.user as JwtPayload,
     bookingId,
   )
@@ -15,11 +15,29 @@ const createBookingSession = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Booking checkout session created successfully',
+    message: 'Booking fee checkout session created successfully',
     data: result,
   })
 })
 
+const createServiceChargeSession = catchAsync(
+  async (req: Request, res: Response) => {
+    const { bookingId } = req.params
+    const result = await PaymentService.createServiceChargeCheckoutSession(
+      req.user as JwtPayload,
+      bookingId,
+    )
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Service charge checkout session created successfully',
+      data: result,
+    })
+  },
+)
+
 export const PaymentController = {
-  createBookingSession,
+  createBookingFeeSession,
+  createServiceChargeSession,
 }

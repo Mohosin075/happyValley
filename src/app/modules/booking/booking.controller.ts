@@ -153,6 +153,20 @@ const updatePrice = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const updateBookingFees = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const fees = req.body
+
+  const result = await BookingServices.updateBookingFees(id, fees)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Booking fees updated successfully',
+    data: result,
+  })
+})
+
 export const BookingController = {
   createBooking,
   updateBooking,
@@ -163,5 +177,6 @@ export const BookingController = {
   getBookingsByDate,
   updateBookingStatus,
   updatePrice,
+  updateBookingFees,
   getWeeklyBookingsByUser,
 }

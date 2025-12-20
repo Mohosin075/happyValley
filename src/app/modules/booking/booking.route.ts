@@ -70,6 +70,14 @@ router
   )
 
 router
+  .route('/:id/update-fees')
+  .patch(
+    auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+    validateRequest(BookingValidations.updateFees),
+    BookingController.updateBookingFees,
+  )
+
+router
   .route('/weekly')
   .get(
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),

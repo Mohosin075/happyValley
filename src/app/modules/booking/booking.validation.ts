@@ -99,4 +99,11 @@ export const BookingValidations = {
       price: z.number().nonnegative(),
     }),
   }),
+
+  updateFees: z.object({
+    body: z.object({
+      bookingFee: z.number().nonnegative().optional(),
+      serviceCharge: z.number().nonnegative().optional(),
+    }),
+  }),
 }

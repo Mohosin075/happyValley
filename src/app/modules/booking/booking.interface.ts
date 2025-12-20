@@ -42,8 +42,11 @@ export interface IBooking {
   }[]
   notes?: string
   status?: BookingStatus
-  price: number
-  paymentStatus: 'pending' | 'paid'
+  price: number // Total price or specific field? Keeping for compatibility
+  bookingFee: number
+  serviceCharge: number
+  bookingFeeStatus: 'pending' | 'paid'
+  serviceChargeStatus: 'pending' | 'paid'
   paymentId?: string
 }
 

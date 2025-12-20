@@ -8,7 +8,13 @@ const router = express.Router()
 router.post(
   '/pay-booking-fee/:bookingId',
   auth(USER_ROLES.ADMIN, USER_ROLES.STAFF, USER_ROLES.CLIENT),
-  PaymentController.createBookingSession,
+  PaymentController.createBookingFeeSession,
+)
+
+router.post(
+  '/pay-service-charge/:bookingId',
+  auth(USER_ROLES.ADMIN, USER_ROLES.STAFF, USER_ROLES.CLIENT),
+  PaymentController.createServiceChargeSession,
 )
 
 export const PaymentRoutes = router

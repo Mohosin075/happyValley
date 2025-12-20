@@ -429,18 +429,6 @@ const updatePrice = async (
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID')
   }
 
-  const booking = await Booking.findById(id)
-  if (!booking) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Booking not found')
-  }
-
-  if (booking.status !== 'completed') {
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      'Price can only be added after the service is completed',
-    )
-  }
-
   const result = await Booking.findByIdAndUpdate(
     new Types.ObjectId(id),
     { $set: { price } },
@@ -449,6 +437,30 @@ const updatePrice = async (
       runValidators: true,
     },
   ).populate('user')
+
+  return result
+}
+
+const updateBookingFees = async (
+  id: string,
+  payload: { bookingFee?: number; serviceCharge?: number },
+): Promise<IBooking | null> => {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID')
+  }
+
+  const result = await Booking.findByIdAndUpdate(
+    new Types.ObjectId(id),
+    { $set: payload },
+    {
+      new: true,
+      runValidators: true,
+    },
+  ).populate('user')
+
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Booking not found')
+  }
 
   return result
 }
@@ -463,6 +475,6 @@ export const BookingServices = {
   getBookingsByDate,
   updateBookingStatus,
   updatePrice,
-
+  updateBookingFees,
   getWeeklyBookingsByUser,
 }
