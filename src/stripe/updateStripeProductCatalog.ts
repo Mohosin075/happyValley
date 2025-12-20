@@ -1,6 +1,7 @@
 import { StatusCodes } from 'http-status-codes'
 import stripe from '../config/stripe'
 import ApiError from '../errors/ApiError'
+import Stripe from 'stripe'
 import config from '../config'
 
 export const updateStripeProductCatalog = async (
@@ -11,23 +12,27 @@ export const updateStripeProductCatalog = async (
   let interval: 'month' | 'year' = 'month'
   let intervalCount = 1
 
-  switch (payload.duration) {
-    case '1 month':
-      interval = 'month'
-      intervalCount = 1
-      break
-    case '3 months':
-      interval = 'month'
-      intervalCount = 3
-      break
-    case '6 months':
-      interval = 'month'
-      intervalCount = 6
-      break
-    case '1 year':
-      interval = 'year'
-      intervalCount = 1
-      break
+  const isOneTime = payload.duration === 'One Time'
+
+  if (!isOneTime) {
+    switch (payload.duration) {
+      case '1 month':
+        interval = 'month'
+        intervalCount = 1
+        break
+      case '3 months':
+        interval = 'month'
+        intervalCount = 3
+        break
+      case '6 months':
+        interval = 'month'
+        intervalCount = 6
+        break
+      case '1 year':
+        interval = 'year'
+        intervalCount = 1
+        break
+    }
   }
 
   // Step 0: Update product details in Stripe
@@ -46,12 +51,17 @@ export const updateStripeProductCatalog = async (
   }
 
   // Step 2: Create new price
-  const price = await stripe.prices.create({
+  const priceData: Stripe.PriceCreateParams = {
     product: productId,
-    unit_amount: payload.price * 100,
+    unit_amount: Math.round(Number(payload.price) * 100),
     currency: 'usd',
-    recurring: { interval, interval_count: intervalCount },
-  })
+  }
+
+  if (!isOneTime) {
+    priceData.recurring = { interval, interval_count: intervalCount }
+  }
+
+  const price = await stripe.prices.create(priceData)
   if (!price)
     throw new ApiError(
       StatusCodes.BAD_REQUEST,

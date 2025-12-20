@@ -5,6 +5,7 @@ import validateRequest from '../../middleware/validateRequest'
 import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../../enum/user'
 import { confirmGroceryOrder, sendMessageToGroceryBot } from './gorceryChat'
+import subscriptionGuard from '../../middleware/subscriptionGuard'
 
 const router = express.Router()
 
@@ -22,6 +23,7 @@ router
   )
   .post(
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.CLIENT),
+    subscriptionGuard,
     validateRequest(BookingValidations.create),
     BookingController.createBooking,
   )
@@ -36,6 +38,7 @@ router
       USER_ROLES.CLIENT,
       USER_ROLES.STAFF,
     ),
+    subscriptionGuard,
     BookingController.myServices,
   )
 

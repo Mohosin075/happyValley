@@ -27,11 +27,11 @@ const subscriptionSchema = new Schema<ISubscription, SubscriptionModel>(
       type: String,
     },
     currentPeriodStart: {
-      type: String,
+      type: Date,
       required: true,
     },
     currentPeriodEnd: {
-      type: String,
+      type: Date,
       required: true,
     },
 
@@ -57,6 +57,7 @@ const subscriptionSchema = new Schema<ISubscription, SubscriptionModel>(
 )
 
 subscriptionSchema.index({ user: 1, status: 1, currentPeriodEnd: 1 })
+subscriptionSchema.index({ subscriptionId: 1 })
 
 export const Subscription = model<ISubscription, SubscriptionModel>(
   'Subscription',
