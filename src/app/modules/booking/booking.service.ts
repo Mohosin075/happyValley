@@ -60,6 +60,9 @@ const createBooking = async (
       payload.status = 'scheduled'
     }
 
+    // Force price to 0 on creation to prevent pre-prices
+    payload.price = 0
+
     const result = await Booking.create({ ...payload, user: user.authId })
     if (!result) {
       throw new ApiError(
@@ -418,6 +421,38 @@ const getWeeklyBookingsByUser = async (user: JwtPayload, date: string) => {
   }
 }
 
+const updatePrice = async (
+  id: string,
+  price: number,
+): Promise<IBooking | null> => {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID')
+  }
+
+  const booking = await Booking.findById(id)
+  if (!booking) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Booking not found')
+  }
+
+  if (booking.status !== 'completed') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Price can only be added after the service is completed',
+    )
+  }
+
+  const result = await Booking.findByIdAndUpdate(
+    new Types.ObjectId(id),
+    { $set: { price } },
+    {
+      new: true,
+      runValidators: true,
+    },
+  ).populate('user')
+
+  return result
+}
+
 export const BookingServices = {
   createBooking,
   getAllBookings,
@@ -427,6 +462,7 @@ export const BookingServices = {
   myServices,
   getBookingsByDate,
   updateBookingStatus,
+  updatePrice,
 
   getWeeklyBookingsByUser,
 }
