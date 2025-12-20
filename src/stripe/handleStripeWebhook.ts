@@ -11,6 +11,7 @@ import {
   handlePaymentSucceeded,
   handleCheckoutSessionCompleted,
 } from './handleSubscriptionCreated'
+import { PaymentService } from '../app/modules/payment/payment.service'
 import stripe from '../config/stripe'
 import ApiError from '../errors/ApiError'
 
@@ -59,9 +60,15 @@ const handleStripeWebhook = async (
   console.log(eventType)
   try {
     switch (eventType) {
-      case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(data as Stripe.Checkout.Session)
+      case 'checkout.session.completed': {
+        const session = data as Stripe.Checkout.Session
+        if (session.metadata?.type === 'booking_payment') {
+          await PaymentService.fulfillBookingPayment(session)
+        } else {
+          await handleCheckoutSessionCompleted(session)
+        }
         break
+      }
 
       case 'customer.subscription.created':
       case 'customer.subscription.updated':

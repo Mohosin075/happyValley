@@ -6,6 +6,7 @@ import { PublicRoutes } from '../app/modules/public/public.route'
 import { SupportRoutes } from '../app/modules/support/support.route'
 import { PlanRoutes } from '../app/modules/plan/plan.routes'
 import { SubscriptionRoutes } from '../app/modules/subscription/subscription.routes'
+import { PaymentRoutes } from '../app/modules/payment/payment.route'
 import { ServiceRoutes } from '../app/modules/service/service.route'
 import { BookingRoutes } from '../app/modules/booking/booking.route'
 import { ReferralRoutes } from '../app/modules/referral/referral.route'
@@ -25,6 +26,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/subscription', route: SubscriptionRoutes },
   { path: '/service', route: ServiceRoutes },
   { path: '/booking', route: BookingRoutes },
+  { path: '/payment', route: PaymentRoutes },
   { path: '/referral', route: ReferralRoutes },
   { path: '/agreement', route: AgreementRoutes },
   { path: '/review', route: ReviewRoutes },

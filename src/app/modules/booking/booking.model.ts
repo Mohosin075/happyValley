@@ -61,6 +61,12 @@ const bookingSchema = new Schema<IBooking, BookingModel>(
       default: 'requested',
     },
     price: { type: Number, required: true, default: 0 },
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'paid'],
+      default: 'pending',
+    },
+    paymentId: { type: String },
   },
   {
     timestamps: true,

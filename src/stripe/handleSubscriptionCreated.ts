@@ -63,10 +63,10 @@ export const handleCheckoutSessionCompleted = async (
       currentPeriodStart = new Date(
         (stripeSubscription as any).current_period_start * 1000,
       )
-      currentPeriodEnd = new Date((stripeSubscription as any).current_period_end * 1000)
+      currentPeriodEnd = new Date(
+        (stripeSubscription as any).current_period_end * 1000,
+      )
     } else {
-      // For One Time plans, define a duration or leave it open
-      // Default to 1 month from now for status tracking, or use plan logic
       currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1)
     }
 

@@ -23,7 +23,6 @@ router
   )
   .post(
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.CLIENT),
-    subscriptionGuard,
     validateRequest(BookingValidations.create),
     BookingController.createBooking,
   )

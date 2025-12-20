@@ -43,6 +43,8 @@ export interface IBooking {
   notes?: string
   status?: BookingStatus
   price: number
+  paymentStatus: 'pending' | 'paid'
+  paymentId?: string
 }
 
 export type BookingModel = Model<IBooking, {}, {}>
