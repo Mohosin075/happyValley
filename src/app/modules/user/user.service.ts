@@ -1,4 +1,4 @@
-import { PipelineStage } from 'mongoose'
+import mongoose, { PipelineStage } from 'mongoose'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../../errors/ApiError'
 import { IUser, IUserFilterables } from './user.interface'
@@ -98,36 +98,69 @@ const createAdmin = async (): Promise<Partial<IUser> | null> => {
 const createStaff = async (
   user: JwtPayload,
   payload: IUser,
-): Promise<Partial<IUser> | null> => {
+): Promise<Partial<IUser>> => {
+  const session = await mongoose.startSession()
+
   try {
+    session.startTransaction()
+
     const tempPassword = Math.floor(
       10000000 + Math.random() * 90000000,
     ).toString()
 
-    const result = await User.create({
-      ...payload,
-      password: tempPassword,
-      verified: true,
-      role: USER_ROLES.STAFF,
-      createdBy: user.authId,
-    })
+    // 1️⃣ Create staff
+    const [result] = await User.create(
+      [
+        {
+          ...payload,
+          password: tempPassword,
+          verified: true,
+          role: USER_ROLES.STAFF,
+          createdBy: user.authId,
+        },
+      ],
+      { session },
+    )
 
     if (!result) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
-        'Failed to create Staff, please try again with valid data.',
+        'Failed to create staff. Please try again.',
       )
     }
 
-    if (payload.services) {
-      payload.services.forEach(async serviceId => {
-        await Service.findByIdAndUpdate(serviceId, {
-          $addToSet: { staff: result._id },
-        })
-      })
+
+    // 2️⃣ Link services (optional)
+    if (payload.services?.length) {
+      await Promise.all(
+        payload.services.map(async serviceId => {
+          const updatedService = await Service.findByIdAndUpdate(
+            serviceId,
+            { $addToSet: { staff: result._id } },
+            { new: true, runValidators: true, session },
+          )
+
+          if (!updatedService) {
+            throw new ApiError(
+              StatusCodes.NOT_FOUND,
+              `Service with ID ${serviceId} not found`,
+            )
+          }
+        }),
+      )
     }
 
-    // send account verification email
+    // 3️⃣ Commit transaction
+    await session.commitTransaction()
+    session.endSession()
+
+    logger.info('Staff created with transactional integrity', {
+      staffId: result._id,
+      services: payload.services ?? [],
+      createdBy: user.authId,
+    })
+
+    // 4️⃣ Send email (OUTSIDE transaction)
     if (result.email) {
       const emailContent = staffCreateTemplate({
         email: result.email,
@@ -136,15 +169,21 @@ const createStaff = async (
         otp: tempPassword,
       })
 
-      await emailHelper.sendEmail(emailContent)
-      // emailQueue.add('emails', createStaffEmailTemplate) // optional queue
+      // non-blocking failure is acceptable
+      emailHelper.sendEmail(emailContent).catch(err => {
+        logger.error('Staff email failed', { err, staffId: result._id })
+      })
     }
 
     return result
   } catch (error: any) {
+    await session.abortTransaction()
+    session.endSession()
+
     if (error.code === 11000) {
       throw new ApiError(StatusCodes.CONFLICT, 'Duplicate entry found')
     }
+
     throw error
   }
 }
@@ -403,7 +442,7 @@ const getAllStaff = async (
       .skip(skip)
       .limit(limit)
       .sort(sortBy ? { [sortBy]: sortOrder } : { createdAt: -1 })
-      .select('-password -authentication -__v'),
+      .select('-password -authentication -__v').populate({path: 'services', select: 'name'}),
 
     User.countDocuments(whereConditions),
   ])
@@ -420,6 +459,7 @@ const getAllStaff = async (
 }
 
 const getStaffById = async (userId: string): Promise<IUser | null> => {
+  console.log(userId)
   const isUserExist = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -430,7 +470,8 @@ const getStaffById = async (userId: string): Promise<IUser | null> => {
   const user = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
-  }).select('-password -authentication -__v')
+  }).select('-password -authentication -__v').populate({path: 'services', select: 'name'})
+
   return user
 }
 

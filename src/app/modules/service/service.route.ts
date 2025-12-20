@@ -10,19 +10,16 @@ const router = express.Router()
 
 router.get(
   '/',
-  // auth(
-  //   USER_ROLES.SUPER_ADMIN,
-  //   USER_ROLES.ADMIN
-  // ),
   ServiceController.getAllServices,
 )
 
 router.get(
+  '/get-services-for-add-staff',
+  ServiceController.getServicesForAddStaff,
+)
+
+router.get(
   '/:id',
-  // auth(
-  //   USER_ROLES.SUPER_ADMIN,
-  //   USER_ROLES.ADMIN
-  // ),
   ServiceController.getSingleService,
 )
 

@@ -58,6 +58,7 @@ export interface IUser {
   deviceToken?: string
   timezone: string
   subscribe: boolean
+  createdBy?: Types.ObjectId
   // membership: Membership
 
   authentication: IAuthentication

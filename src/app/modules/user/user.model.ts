@@ -42,6 +42,7 @@ const UserSchema = new Schema<IUser, UserModel>(
       },
     },
     subscribe: { type: Boolean, default: false },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
 
     password: { type: String, minlength: 6 },
     role: {

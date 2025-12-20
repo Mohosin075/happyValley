@@ -93,7 +93,7 @@ const getUserById = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'User retrieved successfully',
+    message: 'User retrieved successfully', 
     data: result,
   })
 })

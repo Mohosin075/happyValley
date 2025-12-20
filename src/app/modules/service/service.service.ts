@@ -8,6 +8,7 @@ import { paginationHelper } from '../../../helpers/paginationHelper'
 import { serviceSearchableFields } from './service.constants'
 import { Types } from 'mongoose'
 import { User } from '../user/user.model'
+import { SERVICE_STATUS } from '../../../enum/service'
 
 export const createService = async (
   user: JwtPayload,
@@ -189,10 +190,18 @@ const deleteService = async (id: string): Promise<IService> => {
   return result
 }
 
+
+const getServicesForAddStaff = async () => {
+  const result = await Service.find({status: SERVICE_STATUS.ACTIVE}).select('name')
+  return result
+}
+
+
 export const ServiceServices = {
   createService,
   getAllServices,
   getSingleService,
   updateService,
   deleteService,
+  getServicesForAddStaff,
 }

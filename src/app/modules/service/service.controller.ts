@@ -83,10 +83,22 @@ const deleteService = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getServicesForAddStaff = catchAsync(async (req: Request, res: Response) => {
+  const result = await ServiceServices.getServicesForAddStaff()
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Services retrieved successfully',
+    data: result,
+  })
+})
+
 export const ServiceController = {
   createService,
   updateService,
   getSingleService,
   getAllServices,
   deleteService,
+  getServicesForAddStaff,
 }

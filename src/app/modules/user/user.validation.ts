@@ -59,11 +59,10 @@ export const createStaffSchema = z.object({
   body: z.object({
     name: z.string({ required_error: 'Name is required' }),
     email: z.string().email({ message: 'Invalid email address' }),
-    specialties: z
-      .array(STAFF_SPECIALTY, {
-        required_error: 'At least one specialty is required',
-      })
-      .min(1, 'Select at least one specialty'),
-    bio: z.string().optional(),
+    phone: z.string().optional(),
+    specialty: z.string().optional(),
+    description: z.string().optional(),
+    services: z.array(z.string()).optional(),
+    address: addressSchema.optional(),
   }),
 })
