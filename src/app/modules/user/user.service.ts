@@ -1,3 +1,4 @@
+import mongoose, { PipelineStage } from 'mongoose'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../../errors/ApiError'
 import { IUser, IUserFilterables } from './user.interface'
@@ -18,9 +19,11 @@ import {
 } from '../../../shared/emailTemplate'
 import { emailHelper } from '../../../helpers/emailHelper'
 import { Service } from '../service/service.model'
+import { SERVICE_STATUS } from '../../../enum/service'
+import { Review } from '../review/review.model'
+import { Booking } from '../booking/booking.model'
 
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
-  console.log({ payload })
   const isUserExist = await User.findOne({
     _id: user.authId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -33,7 +36,7 @@ const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   if (isUserExist.profile) {
     const url = new URL(isUserExist.profile)
     const key = url.pathname.substring(1)
-    await S3Helper.deleteFromS3(key)
+    // await S3Helper.deleteFromS3(key)
   }
 
   const updatedProfile = await User.findOneAndUpdate(
@@ -95,36 +98,69 @@ const createAdmin = async (): Promise<Partial<IUser> | null> => {
 const createStaff = async (
   user: JwtPayload,
   payload: IUser,
-): Promise<Partial<IUser> | null> => {
+): Promise<Partial<IUser>> => {
+  const session = await mongoose.startSession()
+
   try {
+    session.startTransaction()
+
     const tempPassword = Math.floor(
       10000000 + Math.random() * 90000000,
     ).toString()
 
-    const result = await User.create({
-      ...payload,
-      password: tempPassword,
-      verified: true,
-      role: USER_ROLES.STAFF,
-      createdBy: user.authId,
-    })
+    // 1️⃣ Create staff
+    const [result] = await User.create(
+      [
+        {
+          ...payload,
+          password: tempPassword,
+          verified: true,
+          role: USER_ROLES.STAFF,
+          createdBy: user.authId,
+        },
+      ],
+      { session },
+    )
 
     if (!result) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
-        'Failed to create Staff, please try again with valid data.',
+        'Failed to create staff. Please try again.',
       )
     }
 
-    if (payload.services) {
-      payload.services.forEach(async serviceId => {
-        await Service.findByIdAndUpdate(serviceId, {
-          $addToSet: { staff: result._id },
-        })
-      })
+
+    // 2️⃣ Link services (optional)
+    if (payload.services?.length) {
+      await Promise.all(
+        payload.services.map(async serviceId => {
+          const updatedService = await Service.findByIdAndUpdate(
+            serviceId,
+            { $addToSet: { staff: result._id } },
+            { new: true, runValidators: true, session },
+          )
+
+          if (!updatedService) {
+            throw new ApiError(
+              StatusCodes.NOT_FOUND,
+              `Service with ID ${serviceId} not found`,
+            )
+          }
+        }),
+      )
     }
 
-    // send account verification email
+    // 3️⃣ Commit transaction
+    await session.commitTransaction()
+    session.endSession()
+
+    logger.info('Staff created with transactional integrity', {
+      staffId: result._id,
+      services: payload.services ?? [],
+      createdBy: user.authId,
+    })
+
+    // 4️⃣ Send email (OUTSIDE transaction)
     if (result.email) {
       const emailContent = staffCreateTemplate({
         email: result.email,
@@ -133,71 +169,128 @@ const createStaff = async (
         otp: tempPassword,
       })
 
-      await emailHelper.sendEmail(emailContent)
-      // emailQueue.add('emails', createStaffEmailTemplate) // optional queue
+      // non-blocking failure is acceptable
+      emailHelper.sendEmail(emailContent).catch(err => {
+        logger.error('Staff email failed', { err, staffId: result._id })
+      })
     }
 
     return result
   } catch (error: any) {
+    await session.abortTransaction()
+    session.endSession()
+
     if (error.code === 11000) {
       throw new ApiError(StatusCodes.CONFLICT, 'Duplicate entry found')
     }
+
     throw error
   }
 }
 
 const getAllUsers = async (
   paginationOptions: IPaginationOptions,
-  filterables: IUserFilterables = {}, // safe default
+  filterables: IUserFilterables = {},
 ) => {
   const { searchTerm, ...otherFilters } = filterables
   const { page, skip, limit, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
 
-  const andConditions: any[] = []
+  const matchConditions: any[] = []
 
-  // 🔍 Search functionality
+  // 🔍 Search
   if (searchTerm) {
-    andConditions.push({
+    matchConditions.push({
       $or: userFilterableFields.map(field => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     })
   }
 
-  // 🎯 Dynamic filters (role, verified, etc.)
-  if (Object.keys(otherFilters).length) {
-    for (const [key, value] of Object.entries(otherFilters)) {
-      andConditions.push({ [key]: value })
-    }
+  // 🎯 Filters
+  for (const [key, value] of Object.entries(otherFilters)) {
+    matchConditions.push({ [key]: value })
   }
 
-  // 🛑 Always exclude deleted users
-  andConditions.push({
+  // 🛑 Exclude deleted users
+  matchConditions.push({
     status: { $nin: [USER_STATUS.DELETED, null] },
   })
 
-  // 💡 Final query object
-  const whereConditions = andConditions.length ? { $and: andConditions } : {}
+  const matchStage = matchConditions.length ? { $and: matchConditions } : {}
 
-  const [result, total] = await Promise.all([
-    User.find(whereConditions)
-      .skip(skip)
-      .limit(limit)
-      .sort(sortBy ? { [sortBy]: sortOrder } : { createdAt: -1 })
-      .select('-password -authentication -__v'),
+  const pipeline: PipelineStage[] = [
+    { $match: matchStage },
 
-    User.countDocuments(whereConditions),
+    // 🔗 Join completed bookings (USER → bookings)
+    {
+      $lookup: {
+        from: 'bookings',
+        let: { userId: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ['$user', '$$userId'] },
+                  { $eq: ['$status', 'completed'] },
+                ],
+              },
+            },
+          },
+          {
+            $project: { price: 1 },
+          },
+        ],
+        as: 'completedBookings',
+      },
+    },
+
+    // 🧮 Metrics
+    {
+      $addFields: {
+        completedServiceCount: { $size: '$completedBookings' },
+        totalSpent: {
+          $sum: '$completedBookings.price',
+        },
+      },
+    },
+
+    // 🚫 Cleanup
+    {
+      $project: {
+        password: 0,
+        authentication: 0,
+        __v: 0,
+        completedBookings: 0,
+      },
+    },
+
+    // 📊 Sorting
+    {
+      $sort: sortBy
+        ? { [sortBy]: sortOrder === 'asc' ? 1 : -1 }
+        : { createdAt: -1 },
+    },
+
+    // 📄 Pagination
+    { $skip: skip },
+    { $limit: limit },
+  ]
+
+  const [data, totalResult] = await Promise.all([
+    User.aggregate(pipeline),
+    User.countDocuments(matchStage),
   ])
 
   return {
     meta: {
       page,
       limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      total: totalResult,
+      totalPages: Math.ceil(totalResult / limit),
     },
-    data: result,
+    data,
   }
 }
 
@@ -349,7 +442,7 @@ const getAllStaff = async (
       .skip(skip)
       .limit(limit)
       .sort(sortBy ? { [sortBy]: sortOrder } : { createdAt: -1 })
-      .select('-password -authentication -__v'),
+      .select('-password -authentication -__v').populate({path: 'services', select: 'name'}),
 
     User.countDocuments(whereConditions),
   ])
@@ -366,6 +459,7 @@ const getAllStaff = async (
 }
 
 const getStaffById = async (userId: string): Promise<IUser | null> => {
+  console.log(userId)
   const isUserExist = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -376,8 +470,78 @@ const getStaffById = async (userId: string): Promise<IUser | null> => {
   const user = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
-  }).select('-password -authentication -__v')
+  }).select('-password -authentication -__v').populate({path: 'services', select: 'name'})
+
   return user
+}
+
+export const getStaffsByServiceId = async (serviceId: string) => {
+  // 1. Check if service exists
+  const service = await Service.findOne({
+    _id: serviceId,
+    status: { $nin: [SERVICE_STATUS.DELETED] },
+  })
+    .populate({
+      path: 'staff',
+      select: 'name email role _id profile',
+    })
+    .lean()
+
+  if (!service) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Service not found.')
+  }
+
+  const staffIds = service.staff?.map(s => s._id) || []
+
+  // 2. Fetch rating + completed bookings
+  const [ratings, completed] = await Promise.all([
+    // ⭐ Staff Ratings
+    Review.aggregate([
+      { $match: { reviewee: { $in: staffIds }, status: 'approved' } },
+      {
+        $group: {
+          _id: '$reviewee',
+          avgRating: { $avg: '$rating' },
+        },
+      },
+    ]),
+
+    // ✅ Completed Services Count
+    Booking.aggregate([
+      {
+        $match: {
+          staff: { $in: staffIds },
+          status: 'completed',
+        },
+      },
+      {
+        $group: {
+          _id: '$staff',
+          completedCount: { $sum: 1 },
+        },
+      },
+    ]),
+  ])
+
+  // 3. Convert arrays to maps for faster lookup
+  const ratingMap = new Map(ratings.map(r => [String(r._id), r.avgRating]))
+
+  const completedMap = new Map(
+    completed.map(c => [String(c._id), c.completedCount]),
+  )
+
+  // 4. Attach data to staff list
+  const staffData = service.staff.map(staff => ({
+    ...staff,
+    avgRating: ratingMap.get(String(staff._id)) || 0,
+    completedServices: completedMap.get(String(staff._id)) || 0,
+  }))
+
+  return {
+    serviceId,
+    totalStaff: staffData.length,
+    staffs: staffData,
+  }
 }
 
 export const UserServices = {
@@ -393,4 +557,5 @@ export const UserServices = {
 
   getAllStaff,
   getStaffById,
+  getStaffsByServiceId,
 }

@@ -6,7 +6,6 @@ import { StatusCodes } from 'http-status-codes';
 import pick from '../../../shared/pick';
 import { supportFilterables } from './support.constants';
 import { paginationFields } from '../../../interfaces/pagination';
-import { SUPPORT_STATUS } from '../../../enum/support';
 
 const createSupport = catchAsync(async (req: Request, res: Response) => {
   const supportData = req.body;

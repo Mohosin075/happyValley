@@ -5,6 +5,7 @@ import validateRequest from '../../middleware/validateRequest'
 import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../../enum/user'
 import { confirmGroceryOrder, sendMessageToGroceryBot } from './gorceryChat'
+import subscriptionGuard from '../../middleware/subscriptionGuard'
 
 const router = express.Router()
 
@@ -36,6 +37,7 @@ router
       USER_ROLES.CLIENT,
       USER_ROLES.STAFF,
     ),
+    subscriptionGuard,
     BookingController.myServices,
   )
 
@@ -51,13 +53,28 @@ router
     ),
     BookingController.getBookingsByDate,
   )
-
 // Update booking status route: /bookings/:id/status
 router
   .route('/:id/status')
   .patch(
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.STAFF),
     BookingController.updateBookingStatus,
+  )
+  
+router
+  .route('/:id/add-price')
+  .patch(
+    auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+    validateRequest(BookingValidations.updatePrice),
+    BookingController.updatePrice,
+  )
+
+router
+  .route('/:id/update-fees')
+  .patch(
+    auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+    validateRequest(BookingValidations.updateFees),
+    BookingController.updateBookingFees,
   )
 
 router
@@ -81,6 +98,7 @@ router
   )
   .patch(
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+    validateRequest(BookingValidations.update),
     BookingController.updateBooking,
   )
   .delete(

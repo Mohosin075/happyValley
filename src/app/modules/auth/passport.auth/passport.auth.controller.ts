@@ -5,6 +5,7 @@ import { IUser } from '../../user/user.interface'
 import { ILoginResponse } from '../../../../interfaces/response'
 import { PassportAuthServices } from './passport.auth.service'
 import { AuthCommonServices } from '../common'
+import config from '../../../../config'
 
 const login = catchAsync(async (req: Request, res: Response) => {
   const user = req.user
@@ -18,11 +19,18 @@ const login = catchAsync(async (req: Request, res: Response) => {
   )
   const { status, message, accessToken, refreshToken, role } = result
 
+  res.cookie('refreshToken', refreshToken, {
+    secure: config.node_env === 'production',
+    httpOnly: true,
+    sameSite: 'strict',
+    maxAge: 1000 * 60 * 60 * 24 * 365,
+  })
+
   sendResponse<ILoginResponse>(res, {
     statusCode: status,
     success: true,
     message: message,
-    data: { accessToken, refreshToken, role },
+    data: { accessToken, role },
   })
 })
 
@@ -31,11 +39,19 @@ const googleAuthCallback = catchAsync(async (req: Request, res: Response) => {
     req.user as IUser & { profile: any },
   )
   const { status, message, accessToken, refreshToken, role } = result
+
+  res.cookie('refreshToken', refreshToken, {
+    secure: config.node_env === 'production',
+    httpOnly: true,
+    sameSite: 'strict',
+    maxAge: 1000 * 60 * 60 * 24 * 365,
+  })
+
   sendResponse(res, {
     statusCode: status,
     success: true,
     message: message,
-    data: { accessToken, refreshToken, role },
+    data: { accessToken, role },
   })
 })
 

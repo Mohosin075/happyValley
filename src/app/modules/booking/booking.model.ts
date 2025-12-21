@@ -1,11 +1,15 @@
 import { Schema, model } from 'mongoose'
-import { IBooking, BookingModel, IGroceryChatSession } from './booking.interface'
+import {
+  IBooking,
+  BookingModel,
+  IGroceryChatSession,
+} from './booking.interface'
 
 const bookingSchema = new Schema<IBooking, BookingModel>(
   {
     user: { type: Schema.Types.ObjectId, ref: 'User' },
     service: { type: Schema.Types.ObjectId, ref: 'Service', required: true },
-    staff: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    staff: { type: Schema.Types.ObjectId, ref: 'User' },
 
     date: { type: Date, required: true },
     startTime: { type: String },
@@ -56,11 +60,29 @@ const bookingSchema = new Schema<IBooking, BookingModel>(
       ],
       default: 'requested',
     },
+    price: { type: Number, required: true, default: 0 },
+    bookingFee: { type: Number, default: 0 },
+    serviceCharge: { type: Number, default: 0 },
+    bookingFeeStatus: {
+      type: String,
+      enum: ['pending', 'paid'],
+      default: 'pending',
+    },
+    serviceChargeStatus: {
+      type: String,
+      enum: ['pending', 'paid'],
+      default: 'pending',
+    },
+    paymentId: { type: String },
   },
   {
     timestamps: true,
   },
 )
+
+bookingSchema.index({ service: 1, status: 1, createdAt: -1 })
+bookingSchema.index({ date: 1 })
+bookingSchema.index({ user: 1 })
 
 export const Booking = model<IBooking, BookingModel>('Booking', bookingSchema)
 

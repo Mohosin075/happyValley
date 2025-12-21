@@ -1,17 +1,17 @@
 import { Model } from 'mongoose'
 
 export type IPlan = {
-  title: String
-  description: String
+  title: string
+  description: string
   features: string[]
   limits: {
     session: number
   }
-  priceId?: String
-  price: Number
+  priceId?: string
+  price: number
   duration: '1 month' | '3 months' | '6 months' | '1 year' | 'One Time'
   paymentType: 'Monthly' | 'Yearly' | 'One Time'
-  productId?: String
+  productId?: string
   paymentLink?: string
   status: 'active' | 'Delete'
 }

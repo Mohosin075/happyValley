@@ -23,24 +23,26 @@ export const createCheckoutSession = async (
   if (!user.email)
     throw new ApiError(StatusCodes.BAD_REQUEST, 'User missing email')
 
+  const mode = plan.paymentType === 'One Time' ? 'payment' : 'subscription'
+
   const session = await stripe.checkout.sessions.create({
-    mode: 'subscription', // ✅ ensure your Stripe types are correct
+    mode,
     payment_method_types: ['card'],
     line_items: [
       {
-        price: plan.priceId.toString(), // ensure primitive string
+        price: plan.priceId.toString(),
         quantity: 1,
       },
     ],
-    customer_email: user.email.toString(), // primitive string
-    // success_url: `${config.stripe.paymentSuccess}/payments/success?session_id={CHECKOUT_SESSION_ID}`,
-    // cancel_url: `${config.stripe.paymentSuccess}/payments/cancel`,
+    customer_email: user.email.toString(),
     success_url: `${config.stripe.paymentSuccess}/?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${config.stripe.paymentSuccess}/payments/cancel`,
     metadata: {
       planId: plan._id.toString(),
       userId: user._id.toString(),
     },
+    // For subscriptions, we can also add dynamic tax or other settings here
+    // For payments (One Time), we might want to capture payment intent details
   })
 
   if (!session.url)

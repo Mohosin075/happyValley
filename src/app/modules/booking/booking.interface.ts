@@ -42,6 +42,12 @@ export interface IBooking {
   }[]
   notes?: string
   status?: BookingStatus
+  price: number // Total price or specific field? Keeping for compatibility
+  bookingFee: number
+  serviceCharge: number
+  bookingFeeStatus: 'pending' | 'paid'
+  serviceChargeStatus: 'pending' | 'paid'
+  paymentId?: string
 }
 
 export type BookingModel = Model<IBooking, {}, {}>
@@ -56,6 +62,3 @@ export interface IGroceryChatSession {
   }[]
   status: 'draft' | 'confirmed'
 }
-
-
-

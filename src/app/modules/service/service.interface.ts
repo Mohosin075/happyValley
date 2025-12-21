@@ -1,4 +1,5 @@
 import { Model, Types } from 'mongoose'
+import { SERVICE_STATUS } from '../../../enum/service'
 
 export interface IServiceFilterables {
   searchTerm?: string
@@ -12,19 +13,21 @@ export interface IService {
   staff: Types.ObjectId[]
   name: string
   description?: string
+  image?: string
   servicesProvided: string[]
   occasions?: string[]
+  status?: SERVICE_STATUS
   serviceType: [
     {
-      title: string 
+      title: string
       description: string
     },
   ]
-  fields: [ 
+  fields: [
     {
       name: string
       type: string | number | boolean
-      label: string  
+      label: string
     },
   ]
 }

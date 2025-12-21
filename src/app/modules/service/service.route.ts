@@ -1,60 +1,49 @@
-import express from 'express';
-import { ServiceController } from './service.controller';
-import { ServiceValidations } from './service.validation';
-import validateRequest from '../../middleware/validateRequest';
-import auth from '../../middleware/auth';
-import { USER_ROLES } from '../../../enum/user';
+import express from 'express'
+import { ServiceController } from './service.controller'
+import { ServiceValidations } from './service.validation'
+import validateRequest from '../../middleware/validateRequest'
+import auth from '../../middleware/auth'
+import { USER_ROLES } from '../../../enum/user'
+import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
 
-
-const router = express.Router();
+const router = express.Router()
 
 router.get(
   '/',
-  auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN
-  ),
-  ServiceController.getAllServices
-);
+  ServiceController.getAllServices,
+)
+
+router.get(
+  '/get-services-for-add-staff',
+  ServiceController.getServicesForAddStaff,
+)
 
 router.get(
   '/:id',
-  auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN
-  ),
-  ServiceController.getSingleService
-);
+  ServiceController.getSingleService,
+)
 
 router.post(
   '/',
-  auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN
-  ),
-  
+
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+  fileAndBodyProcessorUsingDiskStorage(),
   validateRequest(ServiceValidations.create),
-  ServiceController.createService
-);
+  ServiceController.createService,
+)
 
 router.patch(
   '/:id',
-  auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN
-  ),
-  
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+
   validateRequest(ServiceValidations.update),
-  ServiceController.updateService
-);
+  ServiceController.updateService,
+)
 
 router.delete(
   '/:id',
-  auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN
-  ),
-  ServiceController.deleteService
-);
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+  ServiceController.deleteService,
+)
 
-export const ServiceRoutes = router;
+export const ServiceRoutes = router

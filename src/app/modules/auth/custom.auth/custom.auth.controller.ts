@@ -5,6 +5,7 @@ import sendResponse from '../../../../shared/sendResponse'
 import { StatusCodes } from 'http-status-codes'
 import { TokenServices } from '../../token/token.service'
 import { JwtPayload } from 'jsonwebtoken'
+import config from '../../../../config'
 
 const customLogin = catchAsync(async (req: Request, res: Response) => {
   const { ...loginData } = req.body
@@ -12,11 +13,18 @@ const customLogin = catchAsync(async (req: Request, res: Response) => {
   const result = await CustomAuthServices.customLogin(loginData)
   const { status, message, accessToken, refreshToken, role } = result
 
+  res.cookie('refreshToken', refreshToken, {
+    secure: config.node_env === 'production',
+    httpOnly: true,
+    sameSite: 'strict',
+    maxAge: 1000 * 60 * 60 * 24 * 365,
+  })
+
   sendResponse(res, {
     statusCode: status,
     success: true,
     message: message,
-    data: { accessToken, refreshToken, role },
+    data: { accessToken, role },
   })
 })
 
@@ -26,11 +34,18 @@ const adminLogin = catchAsync(async (req: Request, res: Response) => {
   const result = await CustomAuthServices.adminLogin(loginData)
   const { status, message, accessToken, refreshToken, role } = result
 
+  res.cookie('refreshToken', refreshToken, {
+    secure: config.node_env === 'production',
+    httpOnly: true,
+    sameSite: 'strict',
+    maxAge: 1000 * 60 * 60 * 24 * 365,
+  })
+
   sendResponse(res, {
     statusCode: status,
     success: true,
     message: message,
-    data: { accessToken, refreshToken, role },
+    data: { accessToken, role },
   })
 })
 
@@ -65,11 +80,21 @@ const verifyAccount = catchAsync(async (req: Request, res: Response) => {
 
   const result = await CustomAuthServices.verifyAccount(email, oneTimeCode)
   const { status, message, accessToken, refreshToken, role, token } = result
+
+  if (refreshToken) {
+    res.cookie('refreshToken', refreshToken, {
+      secure: config.node_env === 'production',
+      httpOnly: true,
+      sameSite: 'strict',
+      maxAge: 1000 * 60 * 60 * 24 * 365,
+    })
+  }
+
   sendResponse(res, {
     statusCode: status,
     success: true,
     message: message,
-    data: { accessToken, refreshToken, role, token },
+    data: { accessToken, role, token },
   })
 })
 
@@ -135,17 +160,32 @@ const socialLogin = catchAsync(async (req: Request, res: Response) => {
   const { appId, deviceToken } = req.body
   const result = await CustomAuthServices.socialLogin(appId, deviceToken)
   const { status, message, accessToken, refreshToken, role } = result
+
+  res.cookie('refreshToken', refreshToken, {
+    secure: config.node_env === 'production',
+    httpOnly: true,
+    sameSite: 'strict',
+    maxAge: 1000 * 60 * 60 * 24 * 365,
+  })
+
   sendResponse(res, {
     statusCode: status,
     success: true,
     message: message,
-    data: { accessToken, refreshToken, role },
+    data: { accessToken, role },
   })
 })
 
 const logout = catchAsync(async (req: Request, res: Response) => {
   const userId = (req.user as JwtPayload).authId
   const result = await TokenServices.logout(userId)
+
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: config.node_env === 'production',
+    sameSite: 'strict',
+  })
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -166,5 +206,5 @@ export const CustomAuthController = {
   deleteAccount,
   adminLogin,
   socialLogin,
-  logout
+  logout,
 }

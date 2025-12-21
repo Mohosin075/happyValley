@@ -42,6 +42,7 @@ const UserSchema = new Schema<IUser, UserModel>(
       },
     },
     subscribe: { type: Boolean, default: false },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
 
     password: { type: String, minlength: 6 },
     role: {
@@ -74,6 +75,8 @@ const UserSchema = new Schema<IUser, UserModel>(
 )
 
 // ------------------ INDEXES ------------------
+UserSchema.index({ role: 1, createdAt: 1 })
+UserSchema.index({ role: 1, 'address.city': 1 })
 UserSchema.index({ location: '2dsphere' }) // Geo queries support
 
 // ------------------ PRE HOOKS ------------------

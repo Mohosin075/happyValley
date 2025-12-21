@@ -78,4 +78,32 @@ export const BookingValidations = {
       ]),
     }),
   }),
+
+  update: z.object({
+    body: z.object({
+      status: z
+        .enum([
+          'confirmed',
+          'inProgress',
+          'completed',
+          'cancelled',
+          'requested',
+          'scheduled',
+        ])
+        .optional(),
+    }),
+  }),
+
+  updatePrice: z.object({
+    body: z.object({
+      price: z.number().nonnegative(),
+    }),
+  }),
+
+  updateFees: z.object({
+    body: z.object({
+      bookingFee: z.number().nonnegative().optional(),
+      serviceCharge: z.number().nonnegative().optional(),
+    }),
+  }),
 }

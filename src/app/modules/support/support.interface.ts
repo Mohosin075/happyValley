@@ -13,6 +13,7 @@ export interface ISupport {
   subject?: string;
   message: string;
   status: SUPPORT_STATUS;
+  priority?: 'low' | 'medium' | 'high';
   attachments?: string[];
 }
 

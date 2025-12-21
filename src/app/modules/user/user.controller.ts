@@ -13,9 +13,9 @@ import { userFilterableFields } from './user.constants'
 import { IUser } from './user.interface'
 
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
-  const { imageUrl, ...userData } = req.body
+  const { images, ...userData } = req.body
 
-  imageUrl && (userData.profile = imageUrl)
+  images && (userData.images = images[0])
   const result = await UserServices.updateProfile(req.user!, userData)
   sendResponse<String>(res, {
     statusCode: StatusCodes.OK,
@@ -93,7 +93,7 @@ const getUserById = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'User retrieved successfully',
+    message: 'User retrieved successfully', 
     data: result,
   })
 })
@@ -131,6 +131,17 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getStaffsByServiceId = catchAsync(async (req: Request, res: Response) => {
+  const { serviceId } = req.params
+  const result = await UserServices.getStaffsByServiceId(serviceId)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Staffs retrieved successfully',
+    data: result,
+  })
+})
+
 export const UserController = {
   updateProfile,
   getAllUsers,
@@ -143,4 +154,5 @@ export const UserController = {
 
   getAllStaff,
   getStaffById,
+  getStaffsByServiceId,
 }
