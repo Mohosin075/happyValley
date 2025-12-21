@@ -7,6 +7,7 @@ import stripe from '../config/stripe'
 import ApiError from '../errors/ApiError'
 import { Types } from 'mongoose'
 import { ISubscription } from '../app/modules/subscription/subscription.interface'
+import { Payment } from '../app/modules/payment/payment.model'
 
 // Helper function to create new subscription in database
 export const createNewSubscription = async (payload: any) => {
@@ -25,11 +26,45 @@ export const createNewSubscription = async (payload: any) => {
   }
 }
 
+// Utility function to record payment in Payment model
+export const createSubscriptionPayment = async (data: {
+  user: string | Types.ObjectId
+  subscription?: string | Types.ObjectId
+  amount: number
+  transactionId: string
+}) => {
+  try {
+    const paymentData = {
+      user: data.user,
+      subscription: data.subscription,
+      amount: data.amount,
+      paymentType: 'subscription' as const,
+      transactionId: data.transactionId,
+      status: 'completed' as const,
+      paymentGateway: 'stripe' as const,
+    }
+
+
+    console.log({paymentData})
+
+    const result = await Payment.create(paymentData)
+    console.log({result})
+    console.log(`Payment record created for subscription: ${data.transactionId}`)
+    return result
+  } catch (error) {
+    console.error(`Error creating payment record for subscription:`, error)
+  }
+}
+
 export const handleCheckoutSessionCompleted = async (
   session: Stripe.Checkout.Session,
 ) => {
   try {
     const { userId, planId } = session.metadata || {}
+    console.log('Checkout Session Metadata:', { userId, planId })
+    console.log('Checkout Session Object Keys:', Object.keys(session))
+    console.log('Checkout Session ID:', session.id)
+    console.log('Checkout Session Subscription:', session.subscription)
     if (!userId || !planId) {
       console.error('Missing metadata in checkout session:', session.id)
       return
@@ -82,7 +117,20 @@ export const handleCheckoutSessionCompleted = async (
       currentPeriodEnd,
     }
 
-    await createNewSubscription(payload)
+    const subscription = await createNewSubscription(payload)
+    console.log('Subscription processed:', subscription?._id)
+
+    // Record the Payment transaction
+    console.log('Checking if payment should be recorded:', { price: payload.price })
+    if (payload.price > 0) {
+      console.log('Recording payment transaction for subscription:', subscriptionId)
+      await createSubscriptionPayment({
+        user: userId,
+        subscription: subscription?._id,
+        amount: payload.price,
+        transactionId: session.id as string, // Consistent with direct payment logic
+      })
+    }
 
     await User.findByIdAndUpdate(userId, { subscribe: true })
     console.log(`Fulfillment completed for user: ${userId}, Plan: ${planId}`)
@@ -99,7 +147,6 @@ export const handleSubscriptionCreated = async (data: Stripe.Subscription) => {
       data.id as string,
     )
 
-    console.log({subscriptionData})
     
     // Fallback lookup if needed, but prefer checkout session metadata for initial setup
     const customer = (await stripe.customers.retrieve(
@@ -137,9 +184,19 @@ export const handleSubscriptionCreated = async (data: Stripe.Subscription) => {
       currentPeriodStart,
       currentPeriodEnd,
     }
-    console.log({ payload })
 
-    await createNewSubscription(payload)
+    const subscription = await createNewSubscription(payload)
+
+    // Record the Payment transaction if it's active and has a price
+    if (payload.status === 'active' && payload.price > 0) {
+      await createSubscriptionPayment({
+        user: user._id,
+        subscription: subscription?._id, // Use the internal DB _id
+        amount: payload.price,
+        transactionId: `sub_created_${subscriptionData.id}`,
+      })
+    }
+
     if (payload.status === 'active') {
       await User.findByIdAndUpdate(user._id, { subscribe: true })
     }
@@ -170,9 +227,32 @@ export const handlePaymentFailed = async (invoice: Stripe.Invoice) => {
 export const handlePaymentSucceeded = async (invoice: Stripe.Invoice) => {
   try {
     const subscriptionId = (invoice as any).subscription as string
-    if (!subscriptionId) return
+    console.log('Invoice Payment Succeeded Data:', {
+      subscriptionId,
+      invoiceId: invoice.id,
+      paymentIntent: (invoice as any).payment_intent,
+      customer: invoice.customer,
+      amount: invoice.amount_paid,
+      metadata: invoice.metadata
+    })
+    
+    if (!subscriptionId) {
+      console.log('SubscriptionId is missing in invoice, checking lines...')
+      const lineSubscription = invoice.lines?.data?.find(line => line.subscription)?.subscription
+      console.log('SubscriptionId from lines:', lineSubscription)
+    }
 
-    const subscription = await Subscription.findOne({ subscriptionId })
+    let subscription = await Subscription.findOne({ subscriptionId: subscriptionId || { $ne: null } })
+    
+    if (!subscription && invoice.customer) {
+      console.log('Subscription not found by ID, searching by customerId:', invoice.customer)
+      // Look for the most recent active or recently created subscription for this customer
+      subscription = await Subscription.findOne({ 
+        customerId: invoice.customer as string 
+      }).sort({ createdAt: -1 })
+    }
+
+    console.log('Subscription found in DB:', subscription?._id)
     if (subscription) {
       // If it's a renewal, update the period dates
       const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId)
@@ -188,7 +268,6 @@ export const handlePaymentSucceeded = async (invoice: Stripe.Invoice) => {
       const currentPeriodStart = new Date(startTimestamp * 1000)
       const currentPeriodEnd = new Date(endTimestamp * 1000)
 
-      console.log({currentPeriodStart, currentPeriodEnd})
 
       if (isNaN(currentPeriodStart.getTime()) || isNaN(currentPeriodEnd.getTime())) {
         console.error('Invalid date generated during renewal:', { startTimestamp, endTimestamp })
@@ -200,6 +279,18 @@ export const handlePaymentSucceeded = async (invoice: Stripe.Invoice) => {
         currentPeriodStart,
         currentPeriodEnd,
       })
+
+      // Record the Payment transaction for renewal
+      console.log('Checking renewal payment:', { amount_paid: invoice.amount_paid })
+      if (invoice.amount_paid > 0) {
+        console.log('Recording payment transaction for renewal: 11111111', subscriptionId)
+        await createSubscriptionPayment({
+          user: subscription.user,
+          subscription: subscription._id,
+          amount: (invoice.amount_paid || 0) / 100,
+          transactionId: ((invoice as any).payment_intent || invoice.id) as string,
+        })
+      }
 
       await User.findByIdAndUpdate(subscription.user, { subscribe: true })
       console.log(`Payment succeeded for subscription: ${subscriptionId}. User activated/renewed.`)
