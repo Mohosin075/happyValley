@@ -10,6 +10,7 @@ import { bookingSearchableFields } from './booking.constants'
 import { Types } from 'mongoose'
 import { USER_ROLES } from '../../../enum/user'
 import { AvailabilityServices } from '../availability/availability.service'
+import { Subscription } from '../subscription/subscription.model'
 
 const createBooking = async (
   user: JwtPayload,
@@ -62,6 +63,16 @@ const createBooking = async (
 
     // Force price to 0 on creation to prevent pre-prices
     payload.price = 0
+
+
+    const isPremiumUser = await Subscription.findOne({ user: user.authId })
+    console.log(isPremiumUser)
+    if (isPremiumUser?.status === 'active') {
+      payload.bookingFee = 0
+    }else{
+      payload.bookingFee = 150
+    }
+    
 
     const result = await Booking.create({ ...payload, user: user.authId })
     if (!result) {
