@@ -16,6 +16,7 @@ import {
   NOTIFICATION_MESSAGES,
   NOTIFICATION_TYPES,
   getBookingNotificationTitle,
+  getBookingNotificationType,
 } from '../notifications/notifications.constants'
 
 const createBooking = async (
@@ -236,7 +237,7 @@ const updateBooking = async (
       to: result.user as any,
       title: getBookingNotificationTitle(updateData.status),
       body: NOTIFICATION_MESSAGES.BOOKING_STATUS_CHANGED(updateData.status),
-      type: `BOOKING_${updateData.status.toUpperCase()}` as any,
+      type: getBookingNotificationType(updateData.status),
     })
   }
 
@@ -377,7 +378,7 @@ const updateBookingStatus = async (
       to: result.user as any,
       title: getBookingNotificationTitle(status),
       body: NOTIFICATION_MESSAGES.BOOKING_STATUS_CHANGED(status),
-      type: `BOOKING_${status.toUpperCase()}` as any,
+      type: getBookingNotificationType(status),
     })
   }
 

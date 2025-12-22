@@ -70,7 +70,7 @@ const sendNotification = async (payload: Partial<INotification>) => {
     //@ts-ignore
     if (global.io) {
       //@ts-ignore
-      global.io.emit(`notification::${result.to.toString()}`, result)
+      global.io.to(`user_${result.to.toString()}`).emit('notification', result)
     }
   }
 

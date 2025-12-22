@@ -8,6 +8,11 @@ import ApiError from '../errors/ApiError'
 import { Types } from 'mongoose'
 import { ISubscription } from '../app/modules/subscription/subscription.interface'
 import { Payment } from '../app/modules/payment/payment.model'
+import { NotificationServices } from '../app/modules/notifications/notifications.service'
+import {
+  NOTIFICATION_MESSAGES,
+  NOTIFICATION_TYPES,
+} from '../app/modules/notifications/notifications.constants'
 
 // Helper function to create new subscription in database
 export const createNewSubscription = async (payload: any) => {
@@ -134,6 +139,14 @@ export const handleCheckoutSessionCompleted = async (
 
     await User.findByIdAndUpdate(userId, { subscribe: true })
     console.log(`Fulfillment completed for user: ${userId}, Plan: ${planId}`)
+
+    // Send Notification
+    await NotificationServices.sendNotification({
+      to: userId as any,
+      title: NOTIFICATION_TYPES.SUBSCRIPTION_ACTIVATED,
+      body: NOTIFICATION_MESSAGES.SUBSCRIPTION_SUCCESS(plan.title),
+      type: NOTIFICATION_TYPES.SUBSCRIPTION_ACTIVATED,
+    })
   } catch (error) {
     console.error('Error in handleCheckoutSessionCompleted:', error)
   }
@@ -199,6 +212,14 @@ export const handleSubscriptionCreated = async (data: Stripe.Subscription) => {
 
     if (payload.status === 'active') {
       await User.findByIdAndUpdate(user._id, { subscribe: true })
+
+      // Send Notification
+      await NotificationServices.sendNotification({
+        to: user._id as any,
+        title: NOTIFICATION_TYPES.SUBSCRIPTION_ACTIVATED,
+        body: NOTIFICATION_MESSAGES.SUBSCRIPTION_SUCCESS(plan.title),
+        type: NOTIFICATION_TYPES.SUBSCRIPTION_ACTIVATED,
+      })
     }
   } catch (error) {
     console.error('Error in handleSubscriptionCreated:', error)
@@ -218,6 +239,14 @@ export const handlePaymentFailed = async (invoice: Stripe.Invoice) => {
         User.findByIdAndUpdate(subscription.user, { subscribe: false }),
       ])
       console.log(`Payment failed for subscription: ${subscriptionId}. User deactivated.`)
+
+      // Send Notification
+      await NotificationServices.sendNotification({
+        to: subscription.user as any,
+        title: 'Subscription Payment Failed',
+        body: NOTIFICATION_MESSAGES.SUBSCRIPTION_FAILED,
+        type: NOTIFICATION_TYPES.SYSTEM,
+      })
     }
   } catch (error) {
     console.error('Error in handlePaymentFailed:', error)
@@ -294,6 +323,15 @@ export const handlePaymentSucceeded = async (invoice: Stripe.Invoice) => {
 
       await User.findByIdAndUpdate(subscription.user, { subscribe: true })
       console.log(`Payment succeeded for subscription: ${subscriptionId}. User activated/renewed.`)
+
+      // Send Notification
+      const plan = await Plan.findById(subscription.plan)
+      await NotificationServices.sendNotification({
+        to: subscription.user as any,
+        title: NOTIFICATION_TYPES.SUBSCRIPTION_RENEWED,
+        body: NOTIFICATION_MESSAGES.SUBSCRIPTION_RENEWAL(plan?.title || 'Plan'),
+        type: NOTIFICATION_TYPES.SUBSCRIPTION_RENEWED,
+      })
     }
   } catch (error) {
     console.error('Error in handlePaymentSucceeded:', error)

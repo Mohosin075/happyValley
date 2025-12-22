@@ -7,6 +7,11 @@ import { Booking } from '../booking/booking.model'
 import { JwtPayload } from 'jsonwebtoken'
 import { User } from '../user/user.model'
 import { Payment } from './payment.model'
+import { NotificationServices } from '../notifications/notifications.service'
+import {
+  NOTIFICATION_MESSAGES,
+  NOTIFICATION_TYPES,
+} from '../notifications/notifications.constants'
 
 const createSession = async (
   user: any,
@@ -142,6 +147,17 @@ const fulfillBookingPayment = async (session: Stripe.Checkout.Session) => {
   console.log(
     `Booking ${bookingId} (${paymentType}) fulfilled and recorded via Payment module`,
   )
+
+  // 3. Send Notification
+  await NotificationServices.sendNotification({
+    to: booking.user as any,
+    title: NOTIFICATION_TYPES.PAYMENT_RECEIVED,
+    body: NOTIFICATION_MESSAGES.PAYMENT_CONFIRMED(
+      paymentType || 'booking',
+      (session.amount_total || 0) / 100,
+    ),
+    type: NOTIFICATION_TYPES.PAYMENT_RECEIVED,
+  })
 }
 
 export const PaymentService = {
