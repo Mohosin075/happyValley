@@ -3,6 +3,7 @@ import ApiError from '../../../errors/ApiError'
 import { JwtPayload } from 'jsonwebtoken'
 import { Types } from 'mongoose'
 import { Notification } from './notifications.model'
+import { INotification } from './notifications.interface'
 import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
 
@@ -14,7 +15,7 @@ const getNotifications = async (
     paginationHelper.calculatePagination(paginationOptions)
   const [result, total] = await Promise.all([
     Notification.find({ to: user.authId })
-      .populate('to')
+      .populate({path:'to',select:'name email'})
       .populate('from')
       .skip(skip)
       .limit(limit)
@@ -62,8 +63,23 @@ const readAllNotifications = async (user: JwtPayload) => {
   }
 }
 
+const sendNotification = async (payload: Partial<INotification>) => {
+  const result = await Notification.create(payload)
+
+  if (result) {
+    //@ts-ignore
+    if (global.io) {
+      //@ts-ignore
+      global.io.emit(`notification::${result.to.toString()}`, result)
+    }
+  }
+
+  return result
+}
+
 export const NotificationServices = {
   getNotifications,
   readNotification,
   readAllNotifications,
+  sendNotification,
 }
