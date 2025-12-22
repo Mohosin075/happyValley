@@ -66,11 +66,13 @@ const readAllNotifications = async (user: JwtPayload) => {
 const sendNotification = async (payload: Partial<INotification>) => {
   const result = await Notification.create(payload)
 
+  // console.log(result.to._id.toString())
+
   if (result) {
     //@ts-ignore
     if (global.io) {
       //@ts-ignore
-      global.io.to(`user_${result.to.toString()}`).emit('notification', result)
+      global.io.to(result.to._id.toString()).emit('notification', result)
     }
   }
 

@@ -6,11 +6,12 @@ const socket = (io: Server) => {
   io.on('connection', socket => {
     logger.info(colors.blue('A user connected'))
 
-    // join room
+
+    // Join a room based on userId
     socket.on('join', (userId: string) => {
-      socket.join(`user_${userId}`)
-      logger.info(colors.green(`User ${userId} joined their private room user_${userId}`))
-    })
+      socket.join(userId);
+      logger.info(colors.green(`User ${userId} joined their private room`))
+    });
 
     //disconnect
     socket.on('disconnect', () => {
