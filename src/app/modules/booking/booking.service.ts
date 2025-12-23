@@ -11,6 +11,13 @@ import { Types } from 'mongoose'
 import { USER_ROLES } from '../../../enum/user'
 import { AvailabilityServices } from '../availability/availability.service'
 import { Subscription } from '../subscription/subscription.model'
+import { NotificationServices } from '../notifications/notifications.service'
+import {
+  NOTIFICATION_MESSAGES,
+  NOTIFICATION_TYPES,
+  getBookingNotificationTitle,
+  getBookingNotificationType,
+} from '../notifications/notifications.constants'
 
 const createBooking = async (
   user: JwtPayload,
@@ -225,6 +232,15 @@ const updateBooking = async (
     )
   }
 
+  if (updateData.status) {
+    await NotificationServices.sendNotification({
+      to: result.user as any,
+      title: getBookingNotificationTitle(updateData.status),
+      body: NOTIFICATION_MESSAGES.BOOKING_STATUS_CHANGED(updateData.status),
+      type: getBookingNotificationType(updateData.status),
+    })
+  }
+
   return result
 }
 
@@ -355,6 +371,15 @@ const updateBookingStatus = async (
       StatusCodes.NOT_FOUND,
       'Requested booking not found, please try again with valid id',
     )
+  }
+
+  if (status) {
+    await NotificationServices.sendNotification({
+      to: result.user as any,
+      title: getBookingNotificationTitle(status),
+      body: NOTIFICATION_MESSAGES.BOOKING_STATUS_CHANGED(status),
+      type: getBookingNotificationType(status),
+    })
   }
 
   // Handle availability update on cancellation
