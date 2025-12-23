@@ -52,13 +52,25 @@ export interface IBooking {
 
 export type BookingModel = Model<IBooking, {}, {}>
 
-// only for grocery booking
+// only for grocery booking (Kitchen Restock AI)
+
+export interface IGroceryItem {
+  name: string
+  quantity: string
+  type?: string // e.g., "vegetable", "dairy", "spice", "meat"
+  brand?: string // preferred brand
+}
+
+export interface IChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+}
 
 export interface IGroceryChatSession {
   user: Types.ObjectId
-  items: {
-    name: string
-    quantity: string
-  }[]
-  status: 'draft' | 'confirmed'
+  items: IGroceryItem[]
+  conversationHistory: IChatMessage[]
+  status: 'draft' | 'confirmed' | 'completed'
+  pastOrderReference?: Types.ObjectId // Reference to previous grocery session
 }

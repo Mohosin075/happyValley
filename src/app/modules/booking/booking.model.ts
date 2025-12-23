@@ -93,11 +93,25 @@ const groceryChatSchema = new Schema<IGroceryChatSession>(
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     items: [
       {
-        name: { type: String },
-        quantity: { type: String },
+        name: { type: String, required: true },
+        quantity: { type: String, required: true },
+        type: { type: String }, // vegetable, dairy, spice, meat, etc.
+        brand: { type: String }, // preferred brand
       },
     ],
-    status: { type: String, enum: ['draft', 'confirmed'], default: 'draft' },
+    conversationHistory: [
+      {
+        role: { type: String, enum: ['user', 'assistant'], required: true },
+        content: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
+    status: {
+      type: String,
+      enum: ['draft', 'confirmed', 'completed'],
+      default: 'draft',
+    },
+    pastOrderReference: { type: Schema.Types.ObjectId, ref: 'GroceryChat' },
   },
   { timestamps: true },
 )

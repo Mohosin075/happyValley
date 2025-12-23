@@ -4,7 +4,12 @@ import { BookingValidations } from './booking.validation'
 import validateRequest from '../../middleware/validateRequest'
 import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../../enum/user'
-import { confirmGroceryOrder, sendMessageToGroceryBot } from './gorceryChat'
+import {
+  confirmGroceryOrder,
+  sendMessageToGroceryBot,
+  getPastOrders,
+  reuseFromPastOrder,
+} from './gorceryChat'
 import subscriptionGuard from '../../middleware/subscriptionGuard'
 
 const router = express.Router()
@@ -106,7 +111,14 @@ router
     BookingController.deleteBooking,
   )
 
-router.post('/chat/send', auth(USER_ROLES.CLIENT), sendMessageToGroceryBot)
-router.post('/chat/confirm', auth(USER_ROLES.CLIENT), confirmGroceryOrder)
+
+// ====================================
+// Kitchen Restock AI Chatbot Routes
+// ====================================
+router.post('/chat/send', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), sendMessageToGroceryBot)
+router.post('/chat/confirm', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), confirmGroceryOrder)
+router.get('/chat/past-orders', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), getPastOrders)
+router.post('/chat/reuse', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), reuseFromPastOrder)
 
 export const BookingRoutes = router
+
