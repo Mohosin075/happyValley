@@ -8,23 +8,28 @@ exports.createSupportSchema = zod_1.z.object({
         userId: zod_1.z.string().optional(),
         subject: zod_1.z.string().optional(),
         message: zod_1.z.string(),
-        status: zod_1.z.enum([
+        status: zod_1.z
+            .enum([
             support_1.SUPPORT_STATUS.DELETED,
             support_1.SUPPORT_STATUS.IN_PROGRESS,
             support_1.SUPPORT_STATUS.SOLVED,
-        ]).optional(),
+        ])
+            .optional(),
+        priority: zod_1.z.enum(['low', 'medium', 'high']).optional(),
         attachments: zod_1.z.array(zod_1.z.string()).optional(),
-    })
+    }),
 });
 exports.updateSupportSchema = zod_1.z.object({
     body: zod_1.z.object({
         subject: zod_1.z.string().optional(),
         message: zod_1.z.string().optional(),
-        status: zod_1.z.enum([
+        status: zod_1.z
+            .enum([
             support_1.SUPPORT_STATUS.DELETED,
             support_1.SUPPORT_STATUS.IN_PROGRESS,
             support_1.SUPPORT_STATUS.SOLVED,
-        ]).optional(),
+        ])
+            .optional(),
         attachments: zod_1.z.array(zod_1.z.string()).optional(),
     }),
 });

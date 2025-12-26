@@ -10,7 +10,7 @@ var USER_ROLES;
 (function (USER_ROLES) {
     USER_ROLES["SUPER_ADMIN"] = "super_admin";
     USER_ROLES["ADMIN"] = "admin";
-    USER_ROLES["HOME_OWNER"] = "home_owner";
+    USER_ROLES["CLIENT"] = "client";
     USER_ROLES["STAFF"] = "staff";
 })(USER_ROLES || (exports.USER_ROLES = USER_ROLES = {}));
 var USER_STATUS;

@@ -3,15 +3,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UserServices = exports.getProfile = void 0;
+exports.UserServices = exports.getStaffsByServiceId = exports.getProfile = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const http_status_codes_1 = require("http-status-codes");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const user_model_1 = require("./user.model");
 const user_1 = require("../../../enum/user");
 const logger_1 = require("../../../shared/logger");
 const paginationHelper_1 = require("../../../helpers/paginationHelper");
-const s3helper_1 = require("../../../helpers/image/s3helper");
 const config_1 = __importDefault(require("../../../config"));
+const user_constants_1 = require("./user.constants");
+const emailTemplate_1 = require("../../../shared/emailTemplate");
+const emailHelper_1 = require("../../../helpers/emailHelper");
+const service_model_1 = require("../service/service.model");
+const service_1 = require("../../../enum/service");
+const review_model_1 = require("../review/review.model");
+const booking_model_1 = require("../booking/booking.model");
 const updateProfile = async (user, payload) => {
     const isUserExist = await user_model_1.User.findOne({
         _id: user.authId,
@@ -23,13 +30,20 @@ const updateProfile = async (user, payload) => {
     if (isUserExist.profile) {
         const url = new URL(isUserExist.profile);
         const key = url.pathname.substring(1);
-        await s3helper_1.S3Helper.deleteFromS3(key);
+        // await S3Helper.deleteFromS3(key)
     }
     const updatedProfile = await user_model_1.User.findOneAndUpdate({ _id: user.authId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, {
         $set: payload,
     }, { new: true });
     if (!updatedProfile) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update profile.');
+    }
+    if (payload.services) {
+        payload.services.forEach(async (serviceId) => {
+            await service_model_1.Service.findByIdAndUpdate(serviceId, {
+                $addToSet: { staff: updatedProfile._id },
+            });
+        });
     }
     return 'Profile updated successfully.';
 };
@@ -63,24 +77,152 @@ const createAdmin = async () => {
     }
     return result[0];
 };
-const getAllUsers = async (paginationOptions) => {
-    const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(paginationOptions);
-    const [result, total] = await Promise.all([
-        user_model_1.User.find({ status: { $nin: [user_1.USER_STATUS.DELETED] } })
-            .skip(skip)
-            .limit(limit)
-            .sort({ [sortBy]: sortOrder }).select('-password -authentication -__v')
-            .exec(),
-        user_model_1.User.countDocuments({ status: { $nin: [user_1.USER_STATUS.DELETED] } }),
+const createStaff = async (user, payload) => {
+    var _a, _b;
+    const session = await mongoose_1.default.startSession();
+    try {
+        session.startTransaction();
+        const tempPassword = Math.floor(10000000 + Math.random() * 90000000).toString();
+        // 1️⃣ Create staff
+        const [result] = await user_model_1.User.create([
+            {
+                ...payload,
+                password: tempPassword,
+                verified: true,
+                role: user_1.USER_ROLES.STAFF,
+                createdBy: user.authId,
+            },
+        ], { session });
+        if (!result) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to create staff. Please try again.');
+        }
+        // 2️⃣ Link services (optional)
+        if ((_a = payload.services) === null || _a === void 0 ? void 0 : _a.length) {
+            await Promise.all(payload.services.map(async (serviceId) => {
+                const updatedService = await service_model_1.Service.findByIdAndUpdate(serviceId, { $addToSet: { staff: result._id } }, { new: true, runValidators: true, session });
+                if (!updatedService) {
+                    throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, `Service with ID ${serviceId} not found`);
+                }
+            }));
+        }
+        // 3️⃣ Commit transaction
+        await session.commitTransaction();
+        session.endSession();
+        logger_1.logger.info('Staff created with transactional integrity', {
+            staffId: result._id,
+            services: (_b = payload.services) !== null && _b !== void 0 ? _b : [],
+            createdBy: user.authId,
+        });
+        // 4️⃣ Send email (OUTSIDE transaction)
+        if (result.email) {
+            const emailContent = (0, emailTemplate_1.staffCreateTemplate)({
+                email: result.email,
+                name: result.name,
+                role: user_1.USER_ROLES.STAFF,
+                otp: tempPassword,
+            });
+            // non-blocking failure is acceptable
+            emailHelper_1.emailHelper.sendEmail(emailContent).catch(err => {
+                logger_1.logger.error('Staff email failed', { err, staffId: result._id });
+            });
+        }
+        return result;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        if (error.code === 11000) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, 'Duplicate entry found');
+        }
+        throw error;
+    }
+};
+const getAllUsers = async (paginationOptions, filterables = {}) => {
+    const { searchTerm, ...otherFilters } = filterables;
+    const { page, skip, limit, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(paginationOptions);
+    const matchConditions = [];
+    // 🔍 Search
+    if (searchTerm) {
+        matchConditions.push({
+            $or: user_constants_1.userFilterableFields.map(field => ({
+                [field]: { $regex: searchTerm, $options: 'i' },
+            })),
+        });
+    }
+    // 🎯 Filters
+    for (const [key, value] of Object.entries(otherFilters)) {
+        matchConditions.push({ [key]: value });
+    }
+    // 🛑 Exclude deleted users
+    matchConditions.push({
+        status: { $nin: [user_1.USER_STATUS.DELETED, null] },
+    });
+    const matchStage = matchConditions.length ? { $and: matchConditions } : {};
+    const pipeline = [
+        { $match: matchStage },
+        // 🔗 Join completed bookings (USER → bookings)
+        {
+            $lookup: {
+                from: 'bookings',
+                let: { userId: '$_id' },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ['$user', '$$userId'] },
+                                    { $eq: ['$status', 'completed'] },
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        $project: { price: 1 },
+                    },
+                ],
+                as: 'completedBookings',
+            },
+        },
+        // 🧮 Metrics
+        {
+            $addFields: {
+                completedServiceCount: { $size: '$completedBookings' },
+                totalSpent: {
+                    $sum: '$completedBookings.price',
+                },
+            },
+        },
+        // 🚫 Cleanup
+        {
+            $project: {
+                password: 0,
+                authentication: 0,
+                __v: 0,
+                completedBookings: 0,
+            },
+        },
+        // 📊 Sorting
+        {
+            $sort: sortBy
+                ? { [sortBy]: sortOrder === 'asc' ? 1 : -1 }
+                : { createdAt: -1 },
+        },
+        // 📄 Pagination
+        { $skip: skip },
+        { $limit: limit },
+    ];
+    const [data, totalResult] = await Promise.all([
+        user_model_1.User.aggregate(pipeline),
+        user_model_1.User.countDocuments(matchStage),
     ]);
     return {
         meta: {
             page,
             limit,
-            total,
-            totalPages: Math.ceil(total / limit),
+            total: totalResult,
+            totalPages: Math.ceil(totalResult / limit),
         },
-        data: result,
+        data,
     };
 };
 const deleteUser = async (userId) => {
@@ -155,13 +297,136 @@ const getProfile = async (user) => {
     return isUserExist;
 };
 exports.getProfile = getProfile;
+const getAllStaff = async (paginationOptions, filterables = {}) => {
+    console.log('hit');
+    const { searchTerm, ...otherFilters } = filterables;
+    const { page, skip, limit, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(paginationOptions);
+    const andConditions = [];
+    andConditions.push({ role: user_1.USER_ROLES.STAFF });
+    // 🔍 Search functionality
+    if (searchTerm) {
+        andConditions.push({
+            $or: user_constants_1.userFilterableFields.map(field => ({
+                [field]: { $regex: searchTerm, $options: 'i' },
+            })),
+        });
+    }
+    // 🎯 Dynamic filters (role, verified, etc.)
+    if (Object.keys(otherFilters).length) {
+        for (const [key, value] of Object.entries(otherFilters)) {
+            andConditions.push({ [key]: value });
+        }
+    }
+    // 🛑 Always exclude deleted users
+    andConditions.push({
+        status: { $nin: [user_1.USER_STATUS.DELETED, null] },
+    });
+    // 💡 Final query object
+    const whereConditions = andConditions.length ? { $and: andConditions } : {};
+    const [result, total] = await Promise.all([
+        user_model_1.User.find(whereConditions)
+            .skip(skip)
+            .limit(limit)
+            .sort(sortBy ? { [sortBy]: sortOrder } : { createdAt: -1 })
+            .select('-password -authentication -__v').populate({ path: 'services', select: 'name' }),
+        user_model_1.User.countDocuments(whereConditions),
+    ]);
+    return {
+        meta: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+        },
+        data: result,
+    };
+};
+const getStaffById = async (userId) => {
+    console.log(userId);
+    const isUserExist = await user_model_1.User.findOne({
+        _id: userId,
+        status: { $nin: [user_1.USER_STATUS.DELETED] },
+    });
+    if (!isUserExist) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
+    }
+    const user = await user_model_1.User.findOne({
+        _id: userId,
+        status: { $nin: [user_1.USER_STATUS.DELETED] },
+    }).select('-password -authentication -__v').populate({ path: 'services', select: 'name' });
+    return user;
+};
+const getStaffsByServiceId = async (serviceId) => {
+    var _a;
+    // 1. Check if service exists
+    const service = await service_model_1.Service.findOne({
+        _id: serviceId,
+        status: { $nin: [service_1.SERVICE_STATUS.DELETED] },
+    })
+        .populate({
+        path: 'staff',
+        select: 'name email role _id profile',
+    })
+        .lean();
+    if (!service) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Service not found.');
+    }
+    const staffIds = ((_a = service.staff) === null || _a === void 0 ? void 0 : _a.map(s => s._id)) || [];
+    // 2. Fetch rating + completed bookings
+    const [ratings, completed] = await Promise.all([
+        // ⭐ Staff Ratings
+        review_model_1.Review.aggregate([
+            { $match: { reviewee: { $in: staffIds }, status: 'approved' } },
+            {
+                $group: {
+                    _id: '$reviewee',
+                    avgRating: { $avg: '$rating' },
+                },
+            },
+        ]),
+        // ✅ Completed Services Count
+        booking_model_1.Booking.aggregate([
+            {
+                $match: {
+                    staff: { $in: staffIds },
+                    status: 'completed',
+                },
+            },
+            {
+                $group: {
+                    _id: '$staff',
+                    completedCount: { $sum: 1 },
+                },
+            },
+        ]),
+    ]);
+    // 3. Convert arrays to maps for faster lookup
+    const ratingMap = new Map(ratings.map(r => [String(r._id), r.avgRating]));
+    const completedMap = new Map(completed.map(c => [String(c._id), c.completedCount]));
+    // 4. Attach data to staff list
+    const staffData = service.staff.map(staff => ({
+        ...staff,
+        avgRating: ratingMap.get(String(staff._id)) || 0,
+        completedServices: completedMap.get(String(staff._id)) || 0,
+    }));
+    return {
+        serviceId,
+        totalStaff: staffData.length,
+        staffs: staffData,
+    };
+};
+exports.getStaffsByServiceId = getStaffsByServiceId;
 exports.UserServices = {
     updateProfile,
     createAdmin,
+    createStaff,
     getAllUsers,
     deleteUser,
     getUserById,
     updateUserStatus,
     getProfile: exports.getProfile,
     deleteProfile,
+    getAllStaff,
+    getStaffById,
+    getStaffsByServiceId: exports.getStaffsByServiceId,
 };

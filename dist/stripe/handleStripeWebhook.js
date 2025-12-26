@@ -8,41 +8,64 @@ const http_status_codes_1 = require("http-status-codes");
 const logger_1 = require("../shared/logger");
 const config_1 = __importDefault(require("../config"));
 const handleSubscriptionCreated_1 = require("./handleSubscriptionCreated");
+const payment_service_1 = require("../app/modules/payment/payment.service");
 const stripe_1 = __importDefault(require("../config/stripe"));
 const ApiError_1 = __importDefault(require("../errors/ApiError"));
-const handleStripeWebhook = async (req, res) => {
+const handleStripeWebhook = async (req, res, next) => {
+    var _a;
     // Extract Stripe signature and webhook secret
     const signature = req.headers['stripe-signature'];
     const webhookSecret = config_1.default.stripe.webhookSecret;
     let event;
     // Verify the event signature
     try {
+        // Log body type to debug signature issues
+        // console.log('Is req.body a Buffer?', Buffer.isBuffer(req.body))
         event = stripe_1.default.webhooks.constructEvent(req.body, signature, webhookSecret);
     }
     catch (error) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Webhook signature verification failed. ${error}`);
+        return next(new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Webhook signature verification failed. ${error}`));
     }
     // Check if the event is valid
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid event received!');
+        return next(new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid event received!'));
     }
     // Extract event data and type
-    const data = event.data.object;
     const eventType = event.type;
+    const data = event.data.object;
     // Handle the event based on its type
-    //   console.log(colors.bgGreen.bold(`Event Type: ${eventType}`))
+    console.log(eventType);
     try {
         switch (eventType) {
+            case 'checkout.session.completed': {
+                const session = data;
+                if (((_a = session.metadata) === null || _a === void 0 ? void 0 : _a.type) === 'booking_payment') {
+                    await payment_service_1.PaymentService.fulfillBookingPayment(session);
+                }
+                else {
+                    await (0, handleSubscriptionCreated_1.handleCheckoutSessionCompleted)(session);
+                }
+                break;
+            }
             case 'customer.subscription.created':
             case 'customer.subscription.updated':
                 await (0, handleSubscriptionCreated_1.handleSubscriptionCreated)(data);
+                break;
+            case 'customer.subscription.deleted':
+                await (0, handleSubscriptionCreated_1.handleSubscriptionDeleted)(data);
+                break;
+            case 'invoice.payment_succeeded':
+                await (0, handleSubscriptionCreated_1.handlePaymentSucceeded)(data);
+                break;
+            case 'invoice.payment_failed':
+                await (0, handleSubscriptionCreated_1.handlePaymentFailed)(data);
                 break;
             default:
                 logger_1.logger.warn(colors_1.default.bgGreen.bold(`Unhandled event type: ${eventType}`));
         }
     }
     catch (error) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Error handling event: ${error}`);
+        return next(new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Error handling event: ${error}`));
     }
     res.sendStatus(200);
 };

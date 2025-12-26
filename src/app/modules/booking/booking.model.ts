@@ -74,6 +74,8 @@ const bookingSchema = new Schema<IBooking, BookingModel>(
       default: 'pending',
     },
     paymentId: { type: String },
+    invoice: { type: Schema.Types.ObjectId, ref: 'Invoice' },
+    isInvoiced: { type: Boolean, default: false },
   },
   {
     timestamps: true,

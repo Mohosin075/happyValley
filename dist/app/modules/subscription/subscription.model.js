@@ -26,20 +26,16 @@ const subscriptionSchema = new mongoose_1.Schema({
         type: String,
     },
     currentPeriodStart: {
-        type: String,
+        type: Date,
         required: true,
     },
     currentPeriodEnd: {
-        type: String,
+        type: Date,
         required: true,
     },
     // Track usage against plan limits
     usage: {
-        reelsUsed: { type: Number, default: 0 },
-        postsUsed: { type: Number, default: 0 },
-        storiesUsed: { type: Number, default: 0 },
-        businessesUsed: { type: Number, default: 0 },
-        carouselUsed: { type: Number, default: 0 },
+        session: { type: Number, default: 0 },
     },
     status: {
         type: String,
@@ -54,4 +50,6 @@ const subscriptionSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
+subscriptionSchema.index({ user: 1, status: 1, currentPeriodEnd: 1 });
+subscriptionSchema.index({ subscriptionId: 1 });
 exports.Subscription = (0, mongoose_1.model)('Subscription', subscriptionSchema);

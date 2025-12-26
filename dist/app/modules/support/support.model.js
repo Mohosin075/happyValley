@@ -7,9 +7,18 @@ const supportSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     subject: { type: String },
     message: { type: String },
-    status: { type: String, enum: Object.values(support_1.SUPPORT_STATUS), default: support_1.SUPPORT_STATUS.IN_PROGRESS },
+    status: {
+        type: String,
+        enum: Object.values(support_1.SUPPORT_STATUS),
+        default: support_1.SUPPORT_STATUS.IN_PROGRESS,
+    },
+    priority: {
+        type: String,
+        enum: ['low', 'medium', 'high'],
+        default: 'medium',
+    },
     attachments: { type: [String] },
 }, {
-    timestamps: true
+    timestamps: true,
 });
 exports.Support = (0, mongoose_1.model)('Support', supportSchema);

@@ -7,6 +7,7 @@ import { Booking } from '../booking/booking.model'
 import { JwtPayload } from 'jsonwebtoken'
 import { User } from '../user/user.model'
 import { Payment } from './payment.model'
+import { Invoice } from '../invoice/invoice.model'
 import { NotificationServices } from '../notifications/notifications.service'
 import {
   NOTIFICATION_MESSAGES,
@@ -66,7 +67,7 @@ const createBookingFeeCheckoutSession = async (
   const booking = await Booking.findById(bookingId)
   if (!booking) throw new ApiError(StatusCodes.NOT_FOUND, 'Booking not found')
 
-    console.log(booking)
+  console.log(booking)
 
   if (booking.bookingFee <= 0) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Booking fee is not set')
@@ -108,8 +109,106 @@ const createServiceChargeCheckoutSession = async (
   )
 }
 
+const createInvoiceCheckoutSession = async (
+  userPayload: JwtPayload,
+  invoiceId: string,
+) => {
+  const user = await User.findById(userPayload.authId)
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+
+  const invoice = await Invoice.findById(invoiceId)
+  if (!invoice) throw new ApiError(StatusCodes.NOT_FOUND, 'Invoice not found')
+
+  if (invoice.status === 'paid') {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invoice is already paid')
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `Invoice for ${invoice.month}`,
+            description: `Payment for invoice ${invoice._id}`,
+          },
+          unit_amount: Math.round(invoice.totalAmount * 100),
+        },
+        quantity: 1,
+      },
+    ],
+    customer_email: user.email,
+    success_url: `${config.stripe.paymentSuccess}/?session_id={CHECKOUT_SESSION_ID}&invoice_id=${invoice._id}`,
+    cancel_url: `${config.stripe.paymentSuccess}/payment-cancel`,
+    metadata: {
+      invoiceId: invoice._id.toString(),
+      userId: user._id.toString(),
+      type: 'invoice_payment',
+    },
+  })
+
+  if (!session.url) {
+    throw new ApiError(
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      'Failed to create Stripe session',
+    )
+  }
+
+  return session.url
+}
+
 const fulfillBookingPayment = async (session: Stripe.Checkout.Session) => {
-  const { bookingId, paymentType } = session.metadata || {}
+  const { bookingId, invoiceId, paymentType, type } = session.metadata || {}
+
+  // Handle Invoice Payment
+  if (type === 'invoice_payment' && invoiceId) {
+    const invoice = await Invoice.findById(invoiceId)
+    if (!invoice) {
+      console.error('Invoice not found during fulfillment:', invoiceId)
+      return
+    }
+
+    // Update Invoice Status
+    await Invoice.findByIdAndUpdate(invoiceId, {
+      status: 'paid',
+      paymentId: session.id,
+    })
+
+    // Update all associated bookings
+    await Booking.updateMany(
+      { _id: { $in: invoice.bookings } },
+      {
+        $set: {
+          bookingFeeStatus: 'paid',
+          serviceChargeStatus: 'paid',
+          // status: 'completed' // They should already be completed to be on invoice
+        },
+      },
+    )
+
+    // Record Payment
+    await Payment.create({
+      user: invoice.user,
+      amount: (session.amount_total || 0) / 100,
+      paymentType: 'subscription', // Using 'subscription' or need new enum 'invoice'
+      transactionId: session.id,
+      status: 'completed',
+      paymentGateway: 'stripe',
+    })
+
+    await NotificationServices.sendNotification({
+      to: invoice.user as any,
+      title: NOTIFICATION_TYPES.PAYMENT_RECEIVED,
+      body: `Payment for invoice ${invoice.month} confirmed.`,
+      type: NOTIFICATION_TYPES.PAYMENT_RECEIVED,
+    })
+
+    return
+  }
+
+  // Handle Booking Payment (original logic)
   if (!bookingId) {
     console.error('Missing bookingId in checkout session metadata:', session.id)
     return
@@ -163,5 +262,6 @@ const fulfillBookingPayment = async (session: Stripe.Checkout.Session) => {
 export const PaymentService = {
   createBookingFeeCheckoutSession,
   createServiceChargeCheckoutSession,
+  createInvoiceCheckoutSession,
   fulfillBookingPayment,
 }

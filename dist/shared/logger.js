@@ -31,7 +31,7 @@ createLogDirs(); // Ensure directories exist
 // Success logger
 const logger = (0, winston_1.createLogger)({
     level: 'info',
-    format: combine(label({ label: 'EXPRESS-CRAFT 🚀' }), timestamp(), myFormat),
+    format: combine(label({ label: 'happyValley 🚀' }), timestamp(), myFormat),
     transports: [
         new winston_1.transports.Console(),
         new winston_daily_rotate_file_1.default({
@@ -47,7 +47,7 @@ exports.logger = logger;
 // Error logger
 const errorLogger = (0, winston_1.createLogger)({
     level: 'error', // This ensures that only error-level messages are logged
-    format: combine(label({ label: 'EXPRESS-CRAFT 🐞' }), timestamp(), myFormat),
+    format: combine(label({ label: 'happyValley 🐞' }), timestamp(), myFormat),
     transports: [
         new winston_1.transports.Console(),
         new winston_daily_rotate_file_1.default({

@@ -54,7 +54,7 @@ const subscriptionsFromDB = async (query) => {
             select: 'name email profile',
         },
     ])
-        .select('-createdAt -updatedAt -__v -customerId -subscriptionId')
+        .select('-createdAt -updatedAt -__v -customerId')
         .lean();
     const pagination = await result.getPaginationInfo();
     return { subscriptions, pagination };

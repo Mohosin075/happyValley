@@ -9,11 +9,7 @@ const subscription_controller_1 = require("./subscription.controller");
 const auth_1 = __importDefault(require("../../middleware/auth"));
 const user_1 = require("../../../enum/user");
 const router = express_1.default.Router();
-// router.post(
-//   '/create-checkout-session',
-//   auth(USER_ROLES.ADMIN, USER_ROLES.STAFF, USER_ROLES.CLIENT),
-//   SubscriptionController.createSubscription,
-// )
+router.post('/create-checkout-session/:planId', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.CLIENT), subscription_controller_1.createSession);
 router.get('/', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.CLIENT), subscription_controller_1.SubscriptionController.subscriptions);
 router.get('/my-plan', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.CLIENT), subscription_controller_1.SubscriptionController.subscriptionDetails);
 exports.SubscriptionRoutes = router;

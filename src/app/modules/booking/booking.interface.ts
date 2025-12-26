@@ -48,6 +48,8 @@ export interface IBooking {
   bookingFeeStatus: 'pending' | 'paid'
   serviceChargeStatus: 'pending' | 'paid'
   paymentId?: string
+  invoice?: Types.ObjectId
+  isInvoiced?: boolean
 }
 
 export type BookingModel = Model<IBooking, {}, {}>

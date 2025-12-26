@@ -11,9 +11,10 @@ const user_service_1 = require("./user.service");
 const pick_1 = __importDefault(require("../../../shared/pick"));
 const pagination_1 = require("../../../interfaces/pagination");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const user_constants_1 = require("./user.constants");
 const updateProfile = (0, catchAsync_1.default)(async (req, res) => {
-    const { imageUrl, ...userData } = req.body;
-    imageUrl && (userData.profile = imageUrl);
+    const { images, ...userData } = req.body;
+    images && (userData.images = images[0]);
     const result = await user_service_1.UserServices.updateProfile(req.user, userData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
@@ -22,13 +23,34 @@ const updateProfile = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const createStaff = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await user_service_1.UserServices.createStaff(req.user, req.body);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Staff created successfully',
+        data: result,
+    });
+});
 const getAllUsers = (0, catchAsync_1.default)(async (req, res) => {
     const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
-    const result = await user_service_1.UserServices.getAllUsers(paginationOptions);
+    const filterables = (0, pick_1.default)(req.query, user_constants_1.userFilterableFields);
+    const result = await user_service_1.UserServices.getAllUsers(paginationOptions, filterables);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Users retrieved successfully',
+        data: result,
+    });
+});
+const getAllStaff = (0, catchAsync_1.default)(async (req, res) => {
+    const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
+    const filterables = (0, pick_1.default)(req.query, user_constants_1.userFilterableFields);
+    const result = await user_service_1.UserServices.getAllStaff(paginationOptions, filterables);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Staff retrieved successfully',
         data: result,
     });
 });
@@ -66,6 +88,16 @@ const getUserById = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getStaffById = (0, catchAsync_1.default)(async (req, res) => {
+    const { userId } = req.params;
+    const result = await user_service_1.UserServices.getStaffById(userId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'User retrieved successfully',
+        data: result,
+    });
+});
 const updateUserStatus = (0, catchAsync_1.default)(async (req, res) => {
     const { userId } = req.params;
     const { status } = req.body;
@@ -86,12 +118,26 @@ const getProfile = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getStaffsByServiceId = (0, catchAsync_1.default)(async (req, res) => {
+    const { serviceId } = req.params;
+    const result = await user_service_1.UserServices.getStaffsByServiceId(serviceId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Staffs retrieved successfully',
+        data: result,
+    });
+});
 exports.UserController = {
     updateProfile,
     getAllUsers,
+    createStaff,
     deleteUser,
     getUserById,
     updateUserStatus,
     getProfile,
-    deleteProfile
+    deleteProfile,
+    getAllStaff,
+    getStaffById,
+    getStaffsByServiceId,
 };

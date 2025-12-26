@@ -15,6 +15,8 @@ const UserSchema = new mongoose_1.Schema({
     businessName: { type: String },
     phone: { type: String },
     description: { type: String },
+    specialty: { type: String },
+    services: { type: [mongoose_1.Schema.Types.ObjectId], ref: 'Service' },
     status: {
         type: String,
         enum: Object.values(user_1.USER_STATUS),
@@ -40,6 +42,7 @@ const UserSchema = new mongoose_1.Schema({
         },
     },
     subscribe: { type: Boolean, default: false },
+    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     password: { type: String, minlength: 6 },
     role: {
         type: String,
@@ -67,6 +70,8 @@ const UserSchema = new mongoose_1.Schema({
     toObject: { virtuals: true },
 });
 // ------------------ INDEXES ------------------
+UserSchema.index({ role: 1, createdAt: 1 });
+UserSchema.index({ role: 1, 'address.city': 1 });
 UserSchema.index({ location: '2dsphere' }); // Geo queries support
 // ------------------ PRE HOOKS ------------------
 UserSchema.pre('save', async function (next) {

@@ -11,6 +11,14 @@ const public_route_1 = require("../app/modules/public/public.route");
 const support_route_1 = require("../app/modules/support/support.route");
 const plan_routes_1 = require("../app/modules/plan/plan.routes");
 const subscription_routes_1 = require("../app/modules/subscription/subscription.routes");
+const payment_route_1 = require("../app/modules/payment/payment.route");
+const service_route_1 = require("../app/modules/service/service.route");
+const booking_route_1 = require("../app/modules/booking/booking.route");
+const referral_route_1 = require("../app/modules/referral/referral.route");
+const agreement_route_1 = require("../app/modules/agreement/agreement.route");
+const review_route_1 = require("../app/modules/review/review.route");
+const stats_route_1 = require("../app/modules/stats/stats.route");
+const invoice_route_1 = require("../app/modules/invoice/invoice.route");
 const router = express_1.default.Router();
 const apiRoutes = [
     { path: '/user', route: user_route_1.UserRoutes },
@@ -20,6 +28,14 @@ const apiRoutes = [
     { path: '/support', route: support_route_1.SupportRoutes },
     { path: '/plan', route: plan_routes_1.PlanRoutes },
     { path: '/subscription', route: subscription_routes_1.SubscriptionRoutes },
+    { path: '/service', route: service_route_1.ServiceRoutes },
+    { path: '/booking', route: booking_route_1.BookingRoutes },
+    { path: '/payment', route: payment_route_1.PaymentRoutes },
+    { path: '/referral', route: referral_route_1.ReferralRoutes },
+    { path: '/agreement', route: agreement_route_1.AgreementRoutes },
+    { path: '/review', route: review_route_1.ReviewRoutes },
+    { path: '/stats', route: stats_route_1.StatsRoutes },
+    { path: '/invoice', route: invoice_route_1.InvoiceRoutes },
 ];
 apiRoutes.forEach(route => {
     router.use(route.path, route.route);
