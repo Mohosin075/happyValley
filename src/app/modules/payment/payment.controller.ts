@@ -37,7 +37,23 @@ const createServiceChargeSession = catchAsync(
   },
 )
 
+const createInvoiceSession = catchAsync(async (req: Request, res: Response) => {
+  const { invoiceId } = req.params
+  const result = await PaymentService.createInvoiceCheckoutSession(
+    req.user as JwtPayload,
+    invoiceId,
+  )
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Invoice checkout session created successfully',
+    data: result,
+  })
+})
+
 export const PaymentController = {
   createBookingFeeSession,
   createServiceChargeSession,
+  createInvoiceSession,
 }

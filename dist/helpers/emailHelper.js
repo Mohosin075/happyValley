@@ -15,11 +15,16 @@ const transporter = nodemailer_1.default.createTransport({
         user: config_1.default.email.user,
         pass: config_1.default.email.pass,
     },
+    // 👇 ignore self-signed cert
+    // 👇 TODO : remove after complete
+    tls: {
+        rejectUnauthorized: false
+    }
 });
 const sendEmail = async (values) => {
     try {
         const info = await transporter.sendMail({
-            from: `"Express-Craft" ${config_1.default.email.from}`,
+            from: `"happyValley" ${config_1.default.email.from}`,
             to: values.to,
             subject: values.subject,
             html: values.html,
@@ -27,6 +32,7 @@ const sendEmail = async (values) => {
         logger_1.logger.info('Mail send successfully', info.accepted);
     }
     catch (error) {
+        console.log({ error });
         logger_1.errorLogger.error('Email', error);
     }
 };

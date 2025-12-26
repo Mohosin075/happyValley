@@ -13,7 +13,7 @@ const getNotifications = async (user, paginationOptions) => {
     const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(paginationOptions);
     const [result, total] = await Promise.all([
         notifications_model_1.Notification.find({ to: user.authId })
-            .populate('to')
+            .populate({ path: 'to', select: 'name email' })
             .populate('from')
             .skip(skip)
             .limit(limit)
@@ -49,8 +49,21 @@ const readAllNotifications = async (user) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to mark all notifications as read');
     }
 };
+const sendNotification = async (payload) => {
+    const result = await notifications_model_1.Notification.create(payload);
+    // console.log(result.to._id.toString())
+    if (result) {
+        //@ts-ignore
+        if (global.io) {
+            //@ts-ignore
+            global.io.to(result.to._id.toString()).emit('notification', result);
+        }
+    }
+    return result;
+};
 exports.NotificationServices = {
     getNotifications,
     readNotification,
     readAllNotifications,
+    sendNotification,
 };

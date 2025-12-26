@@ -1,198 +1,750 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StatsService = exports.updateFacebookContentStats = void 0;
-const content_model_1 = require("../content/content.model");
-const content_constants_1 = require("../content/content.constants");
-const mongoose_1 = require("mongoose");
-const stats_model_1 = require("./stats.model");
-const user_model_1 = require("../user/user.model");
+exports.StatsServices = void 0;
 const user_1 = require("../../../enum/user");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
-const http_status_codes_1 = require("http-status-codes");
-const socialintegration_model_1 = require("../socialintegration/socialintegration.model");
-const graphAPIHelper_1 = require("../../../helpers/graphAPIHelper");
-const createStats = async (content, payload) => {
-    // 🧠 Step 1: Verify admin user
-    const newStats = await stats_model_1.Stats.create(payload);
-    return newStats;
+const booking_model_1 = require("../booking/booking.model");
+const review_model_1 = require("../review/review.model");
+const service_model_1 = require("../service/service.model");
+const subscription_model_1 = require("../subscription/subscription.model");
+const support_model_1 = require("../support/support.model");
+const user_model_1 = require("../user/user.model");
+// Helper function to get month name
+const getMonthName = (monthIndex) => {
+    const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+    ];
+    return months[monthIndex];
 };
-const getAllPlatformStats = async (user) => {
-    const isAdminExist = await user_model_1.User.findOne({
-        _id: user.authId,
-        role: user_1.USER_ROLES.ADMIN,
-    });
-    if (!isAdminExist) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'No admin user found for the provided ID. Please check and try again');
+// Helper function to ensure all months are included
+const fillMissingMonths = (data, months = 6) => {
+    const result = [];
+    const endDate = new Date();
+    for (let i = months - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(endDate.getMonth() - i);
+        const monthName = getMonthName(date.getMonth());
+        const existingData = data.find(item => item.month === monthName);
+        if (existingData) {
+            result.push(existingData);
+        }
+        else {
+            // Push zero values for missing months
+            if ('count' in data[0]) {
+                result.push({ month: monthName, count: 0 });
+            }
+            else if ('revenue' in data[0]) {
+                result.push({ month: monthName, revenue: 0 });
+            }
+        }
     }
-    const allStats = await stats_model_1.Stats.find({});
-    return allStats;
+    return result;
 };
-const getUserContentStats = async (user) => {
-    const userId = new mongoose_1.Types.ObjectId(user.authId);
-    // 🟦 Step 1: Basic published counts
-    const stats = await content_model_1.Content.aggregate([
+// 1. Service Requests - Monthly service bookings over time
+const getServiceRequests = async (months = 6) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - months);
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+    const serviceRequests = await booking_model_1.Booking.aggregate([
         {
             $match: {
-                user: userId,
-                status: content_constants_1.CONTENT_STATUS.PUBLISHED,
+                createdAt: {
+                    $gte: startDate,
+                    $lte: endDate,
+                },
             },
         },
         {
             $group: {
-                _id: '$contentType',
-                total: { $sum: 1 },
+                _id: {
+                    year: { $year: '$createdAt' },
+                    month: { $month: '$createdAt' },
+                },
+                count: { $sum: 1 },
+            },
+        },
+        {
+            $sort: { '_id.year': 1, '_id.month': 1 },
+        },
+        {
+            $project: {
+                month: {
+                    $let: {
+                        vars: {
+                            monthsInYear: [
+                                'Jan',
+                                'Feb',
+                                'Mar',
+                                'Apr',
+                                'May',
+                                'Jun',
+                                'Jul',
+                                'Aug',
+                                'Sep',
+                                'Oct',
+                                'Nov',
+                                'Dec',
+                            ],
+                        },
+                        in: {
+                            $arrayElemAt: [
+                                '$$monthsInYear',
+                                { $subtract: ['$_id.month', 1] },
+                            ],
+                        },
+                    },
+                },
+                count: 1,
             },
         },
     ]);
-    // 🟨 Step 2: Weekly views & engagement for published content
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const engagementStats = await content_model_1.Content.aggregate([
+    // Fill in missing months with zero values
+    const filledData = fillMissingMonths(serviceRequests.map(item => ({
+        month: item.month,
+        count: item.count,
+    })), months);
+    return filledData;
+};
+// 2. Revenue Trend - Monthly revenue over time
+const getRevenueTrend = async (months = 6) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - months);
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+    const revenueTrend = await booking_model_1.Booking.aggregate([
         {
             $match: {
-                user: userId,
-                status: content_constants_1.CONTENT_STATUS.PUBLISHED,
-                createdAt: { $gte: oneWeekAgo },
+                createdAt: {
+                    $gte: startDate,
+                    $lte: endDate,
+                },
+                status: { $nin: ['cancelled'] }, // Exclude cancelled bookings
             },
         },
         {
-            // 🧠 Calculate engagement and make sure stats fields are always numbers
-            $addFields: {
-                stats: {
-                    likes: { $ifNull: ['$stats.likes', 0] },
-                    comments: { $ifNull: ['$stats.comments', 0] },
-                    shares: { $ifNull: ['$stats.shares', 0] },
-                    views: { $ifNull: ['$stats.views', 0] },
+            $group: {
+                _id: {
+                    year: { $year: '$createdAt' },
+                    month: { $month: '$createdAt' },
                 },
-                engagement: {
-                    $add: [
-                        { $ifNull: ['$stats.likes', 0] },
-                        { $ifNull: ['$stats.comments', 0] },
-                        { $ifNull: ['$stats.shares', 0] },
-                    ],
+                revenue: { $sum: '$price' },
+            },
+        },
+        {
+            $sort: { '_id.year': 1, '_id.month': 1 },
+        },
+        {
+            $project: {
+                month: {
+                    $let: {
+                        vars: {
+                            monthsInYear: [
+                                'Jan',
+                                'Feb',
+                                'Mar',
+                                'Apr',
+                                'May',
+                                'Jun',
+                                'Jul',
+                                'Aug',
+                                'Sep',
+                                'Oct',
+                                'Nov',
+                                'Dec',
+                            ],
+                        },
+                        in: {
+                            $arrayElemAt: [
+                                '$$monthsInYear',
+                                { $subtract: ['$_id.month', 1] },
+                            ],
+                        },
+                    },
                 },
+                revenue: { $round: ['$revenue', 2] }, // Round to 2 decimal places
+            },
+        },
+    ]);
+    // Fill in missing months with zero values
+    const filledData = fillMissingMonths(revenueTrend.map(item => ({
+        month: item.month,
+        revenue: item.revenue,
+    })), months);
+    return filledData;
+};
+// 3. Complete Dashboard Data (combines all)
+const getDashboardData = async () => {
+    var _a;
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    // Get last 6 months of data for charts
+    const [totalClients, activeServices, totalRevenue, activeStaff, serviceRequests, revenueTrend,] = await Promise.all([
+        // Total Clients (all time)
+        booking_model_1.Booking.distinct('user').countDocuments(),
+        // Active Services (last month - distinct services booked)
+        booking_model_1.Booking.distinct('service', {
+            createdAt: {
+                $gte: startOfLastMonth,
+                $lte: endOfLastMonth,
+            },
+            status: { $nin: ['cancelled'] },
+        }).countDocuments(),
+        // Total Revenue (all time)
+        booking_model_1.Booking.aggregate([
+            {
+                $match: { status: { $nin: ['cancelled'] } },
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$price' },
+                },
+            },
+        ]),
+        // Active Staff (last month - distinct staff assigned)
+        booking_model_1.Booking.distinct('staff', {
+            createdAt: {
+                $gte: startOfLastMonth,
+                $lte: endOfLastMonth,
+            },
+            status: { $nin: ['cancelled'] },
+        }).countDocuments(),
+        // Service Requests (last 6 months)
+        getServiceRequests(6),
+        // Revenue Trend (last 6 months)
+        getRevenueTrend(6),
+    ]);
+    return {
+        totalClients,
+        activeServices,
+        totalRevenue: ((_a = totalRevenue[0]) === null || _a === void 0 ? void 0 : _a.total) || 0,
+        activeStaff,
+        serviceRequests,
+        revenueTrend,
+    };
+};
+// Get client statistics
+const getClientStats = async () => {
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    // Get all stats in parallel for better performance
+    const [totalClients, premiumMembers, activeThisMonth, newThisMonth, lastMonthClients,] = await Promise.all([
+        // Total Clients (users with role = CLIENT)
+        user_model_1.User.countDocuments({ role: user_1.USER_ROLES.CLIENT }),
+        // Premium Members (users with active subscription)
+        user_model_1.User.countDocuments({
+            role: user_1.USER_ROLES.CLIENT,
+            _id: {
+                $in: await subscription_model_1.Subscription.distinct('user', {
+                    status: 'active',
+                    currentPeriodEnd: { $gte: new Date().toISOString() },
+                }),
+            },
+        }),
+        // Active This Month (clients who booked this month)
+        user_model_1.User.countDocuments({
+            role: user_1.USER_ROLES.CLIENT,
+            _id: {
+                $in: await booking_model_1.Booking.distinct('user', {
+                    createdAt: { $gte: startOfCurrentMonth },
+                    status: { $nin: ['cancelled'] },
+                }),
+            },
+        }),
+        // New This Month (clients created this month)
+        user_model_1.User.countDocuments({
+            role: user_1.USER_ROLES.CLIENT,
+            createdAt: { $gte: startOfCurrentMonth },
+        }),
+        // Last month total for growth calculation
+        user_model_1.User.countDocuments({
+            role: user_1.USER_ROLES.CLIENT,
+            createdAt: { $lt: startOfCurrentMonth },
+        }),
+    ]);
+    // Calculate growth rate
+    const growthRate = lastMonthClients > 0
+        ? ((totalClients - lastMonthClients) / lastMonthClients) * 100
+        : totalClients > 0
+            ? 100
+            : 0;
+    // Calculate premium percentage
+    const premiumPercentage = totalClients > 0 ? (premiumMembers / totalClients) * 100 : 0;
+    return {
+        totalClients,
+        premiumMembers,
+        activeThisMonth,
+        newThisMonth,
+        growthRate: Math.round(growthRate * 10) / 10, // Round to 1 decimal
+        premiumPercentage: Math.round(premiumPercentage * 10) / 10,
+    };
+};
+// Get staff statistics
+const getStaffStats = async () => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Get total staff count
+    const totalStaff = await user_model_1.User.countDocuments({ role: user_1.USER_ROLES.STAFF });
+    if (totalStaff === 0) {
+        return {
+            totalStaff: 0,
+            activeToday: 0,
+            averageRating: 0,
+            servicesThisMonth: 0,
+            availableStaff: 0,
+            occupiedStaff: 0,
+        };
+    }
+    // Get staff who are active today (have bookings today)
+    const activeStaffToday = await booking_model_1.Booking.distinct('staff', {
+        date: { $gte: startOfToday },
+        status: { $nin: ['cancelled'] },
+    });
+    // Get services created by staff this month
+    const servicesThisMonth = await service_model_1.Service.countDocuments({
+        createdAt: { $gte: startOfCurrentMonth },
+    });
+    // Calculate average rating for staff
+    const averageRating = await calculateAverageStaffRating();
+    // Get available vs occupied staff for today
+    const todayBookings = await booking_model_1.Booking.find({
+        date: { $gte: startOfToday },
+        status: { $nin: ['cancelled'] },
+    }).select('staff');
+    const occupiedStaffIds = [
+        ...new Set(todayBookings.map(booking => booking.staff.toString())),
+    ];
+    const availableStaff = totalStaff - occupiedStaffIds.length;
+    return {
+        totalStaff,
+        activeToday: activeStaffToday.length,
+        averageRating,
+        servicesThisMonth,
+        availableStaff,
+        occupiedStaff: occupiedStaffIds.length,
+    };
+};
+// Calculate average rating for all staff
+const calculateAverageStaffRating = async () => {
+    // Get all services created by staff
+    const services = await service_model_1.Service.find({}).select('_id createdBy');
+    // Create a map of service IDs to their creator (staff)
+    const serviceToStaffMap = new Map();
+    services.forEach(service => {
+        if (service.createdBy) {
+            serviceToStaffMap.set(service._id.toString(), service.createdBy.toString());
+        }
+    });
+    // Get all reviews for these services
+    const reviews = await review_model_1.Review.find({
+        service: { $in: Array.from(serviceToStaffMap.keys()) },
+        status: 'approved',
+    });
+    if (reviews.length === 0)
+        return 0;
+    // Group ratings by staff
+    const staffRatings = new Map();
+    reviews.forEach(review => {
+        const staffId = serviceToStaffMap.get(review.service.toString());
+        if (staffId) {
+            if (!staffRatings.has(staffId)) {
+                staffRatings.set(staffId, { total: 0, count: 0 });
+            }
+            const current = staffRatings.get(staffId);
+            staffRatings.set(staffId, {
+                total: current.total + review.rating,
+                count: current.count + 1,
+            });
+        }
+    });
+    // Calculate overall average
+    let totalRating = 0;
+    let totalReviews = 0;
+    staffRatings.forEach(value => {
+        totalRating += value.total;
+        totalReviews += value.count;
+    });
+    const average = totalReviews > 0 ? totalRating / totalReviews : 0;
+    return Math.round(average * 10) / 10; // Round to 1 decimal
+};
+// Get service statistics
+const getServiceStats = async () => {
+    var _a;
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    // Get all stats in parallel
+    const [totalServices, activeServices, totalBookings, averagePrice] = await Promise.all([
+        // Total Services
+        service_model_1.Service.countDocuments(),
+        // Active Services (services with bookings in last month)
+        service_model_1.Service.countDocuments({
+            _id: {
+                $in: await booking_model_1.Booking.distinct('service', {
+                    createdAt: { $gte: startOfLastMonth },
+                    status: { $nin: ['cancelled'] },
+                }),
+            },
+        }),
+        // Total Bookings (all time, excluding cancelled)
+        booking_model_1.Booking.countDocuments({ status: { $nin: ['cancelled'] } }),
+        // Average Price (of all bookings)
+        booking_model_1.Booking.aggregate([
+            {
+                $match: { status: { $nin: ['cancelled'] } },
+            },
+            {
+                $group: {
+                    _id: null,
+                    avgPrice: { $avg: '$price' },
+                    count: { $sum: 1 },
+                },
+            },
+        ]),
+    ]);
+    return {
+        totalServices,
+        activeServices,
+        totalBookings,
+        averagePrice: ((_a = averagePrice[0]) === null || _a === void 0 ? void 0 : _a.avgPrice)
+            ? Math.round(averagePrice[0].avgPrice * 100) / 100
+            : 0,
+    };
+};
+// Helper function to get subscription stats
+const getSubscriptionStats = async () => {
+    const result = await subscription_model_1.Subscription.aggregate([
+        {
+            $match: {
+                status: 'active',
+                currentPeriodEnd: { $gte: new Date().toISOString() },
             },
         },
         {
             $group: {
                 _id: null,
-                totalViews: { $sum: '$stats.views' },
-                totalEngagement: { $sum: '$engagement' },
-                totalContents: { $sum: 1 },
+                revenue: { $sum: '$price' },
+                count: { $sum: 1 },
             },
         },
     ]);
-    // 🟩 Step 3: Build result object
-    const result = {
-        postsPublished: 0,
-        reelsPublished: 0,
-        storiesCreated: 0,
-        weeklyViews: 0,
-        averageEngagementRate: 0,
+    return result[0] || { revenue: 0, count: 0 };
+};
+// Helper function to get booking stats by status
+const getBookingStats = async () => {
+    const result = await booking_model_1.Booking.aggregate([
+        {
+            $group: {
+                _id: '$status',
+                revenue: { $sum: '$price' },
+                count: { $sum: 1 },
+            },
+        },
+    ]);
+    return result.reduce((acc, curr) => {
+        acc[curr._id] = { revenue: curr.revenue, count: curr.count };
+        return acc;
+    }, {});
+};
+// Main payment stats function
+const getPaymentStatsClean = async () => {
+    var _a;
+    const [subscription, bookings] = await Promise.all([
+        getSubscriptionStats(),
+        getBookingStats(),
+    ]);
+    // Define status groups
+    const completedStatuses = [
+        'completed',
+        'confirmed',
+        'inProgress',
+        'scheduled',
+    ];
+    const pendingStatuses = ['requested', 'scheduled'];
+    // Calculate totals
+    let totalRevenue = subscription.revenue;
+    let totalBookings = 0;
+    let pendingBookings = 0;
+    let refundRequests = ((_a = bookings.cancelled) === null || _a === void 0 ? void 0 : _a.count) || 0;
+    completedStatuses.forEach(status => {
+        const booking = bookings[status];
+        if (booking) {
+            totalRevenue += booking.revenue;
+            totalBookings += booking.count;
+        }
+    });
+    pendingStatuses.forEach(status => {
+        const booking = bookings[status];
+        if (booking) {
+            pendingBookings += booking.count;
+        }
+    });
+    const totalCompletedPayments = subscription.count + totalBookings;
+    const averageTransaction = totalCompletedPayments > 0 ? totalRevenue / totalCompletedPayments : 0;
+    return {
+        totalRevenue: Math.round(totalRevenue * 100) / 100,
+        completedPayments: totalCompletedPayments,
+        pendingPayments: pendingBookings,
+        refundRequests: refundRequests,
+        averageTransaction: Math.round(averageTransaction * 100) / 100,
+        revenueGrowth: 0, // Add growth calculation separately if needed
     };
-    // Fill counts
-    for (const item of stats) {
-        if (item._id === 'post')
-            result.postsPublished = item.total;
-        if (item._id === 'reel')
-            result.reelsPublished = item.total;
-        if (item._id === 'story')
-            result.storiesCreated = item.total;
-    }
-    // Fill engagement data
-    if (engagementStats.length > 0) {
-        const { totalViews, totalEngagement } = engagementStats[0];
-        result.weeklyViews = totalViews || 0;
-        if (totalViews > 0) {
-            result.averageEngagementRate = Number((totalEngagement / totalViews).toFixed(2));
-        }
-        else {
-            result.averageEngagementRate = 0;
-        }
-    }
-    // 📝 Return clean single-layer response
-    return result;
 };
-const updateFacebookContentStats = async () => {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
-    let isRunning = false;
-    if (isRunning)
-        return console.log('⏳ Previous job still running...');
-    isRunning = true;
-    console.log('🕐 Running Facebook content stats update...');
-    try {
-        // Fetch all published Facebook contents
-        const contents = await content_model_1.Content.find({
-            status: content_constants_1.CONTENT_STATUS.PUBLISHED,
-            platform: { $in: ['facebook'] },
-        });
-        for (const item of contents) {
-            const containerId = item.facebookContainerId;
-            const fbAccount = await socialintegration_model_1.Socialintegration.findOne({
-                user: item.user,
-                platform: 'facebook',
-            });
-            if (!((_a = fbAccount === null || fbAccount === void 0 ? void 0 : fbAccount.accounts) === null || _a === void 0 ? void 0 : _a.length))
-                continue;
-            const { pageAccessToken } = fbAccount.accounts[0];
-            if (!pageAccessToken)
-                continue;
-            try {
-                let payload;
-                if (item.contentType === 'reel') {
-                    // Reels-specific payload
-                    const fbData = await (0, graphAPIHelper_1.getFacebookVideoFullDetails)(containerId, pageAccessToken);
-                    payload = {
-                        user: item.user,
-                        contentId: item._id,
-                        platform: 'facebook',
-                        likes: (_b = fbData.likesCount) !== null && _b !== void 0 ? _b : 0,
-                        comments: (_c = fbData.commentsCount) !== null && _c !== void 0 ? _c : 0,
-                        shares: (_e = (_d = fbData.insights) === null || _d === void 0 ? void 0 : _d.total_video_shares) !== null && _e !== void 0 ? _e : 0,
-                        views: (_g = (_f = fbData.insights) === null || _f === void 0 ? void 0 : _f.total_video_views) !== null && _g !== void 0 ? _g : 0,
-                        // You can add reel-specific stats if needed, e.g. completionRate
-                    };
-                }
-                else if (item.contentType === 'post') {
-                    // Post-specific payload
-                    const fbData = await (0, graphAPIHelper_1.getFacebookPhotoDetails)(containerId, pageAccessToken);
-                    payload = {
-                        user: item.user,
-                        contentId: item._id,
-                        platform: 'facebook',
-                        likes: (_h = fbData.likesCount) !== null && _h !== void 0 ? _h : 0,
-                        comments: (_j = fbData.commentsCount) !== null && _j !== void 0 ? _j : 0,
-                        shares: (_k = fbData.sharesCount) !== null && _k !== void 0 ? _k : 0,
-                        views: (_l = fbData.impressions) !== null && _l !== void 0 ? _l : 0,
-                        // You can add post-specific stats if needed, e.g. saves
-                    };
-                }
-                else {
-                    continue; // skip other content types
-                }
-                // Upsert stats
-                await stats_model_1.Stats.findOneAndUpdate({ contentId: item._id, platform: 'facebook', user: item.user }, payload, { upsert: true, new: true });
-                console.log(`✅ Updated stats for content: ${item._id}`);
-            }
-            catch (err) {
-                console.error(`❌ Error fetching FB data for ${item._id}:`, err);
-            }
-        }
-        console.log('✨ Facebook stats update completed.');
-    }
-    catch (err) {
-        console.error('❌ Error updating Facebook stats:', err);
-    }
-    finally {
-        isRunning = false;
-    }
+const getReviewSupportStatsSimple = async () => {
+    var _a, _b, _c;
+    const [reviewData, supportData] = await Promise.all([
+        // Get review stats
+        review_model_1.Review.aggregate([
+            {
+                $facet: {
+                    averageRating: [
+                        {
+                            $group: {
+                                _id: null,
+                                avg: { $avg: '$rating' },
+                            },
+                        },
+                    ],
+                    pendingCount: [
+                        {
+                            $match: { status: 'pending' },
+                        },
+                        {
+                            $count: 'count',
+                        },
+                    ],
+                    approvedRatings: [
+                        {
+                            $match: { status: 'approved' },
+                        },
+                        {
+                            $group: {
+                                _id: null,
+                                avg: { $avg: '$rating' },
+                                count: { $sum: 1 },
+                            },
+                        },
+                    ],
+                },
+            },
+        ]),
+        // Get support stats
+        support_model_1.Support.aggregate([
+            {
+                $match: {
+                    status: { $in: ['open', 'in_progress'] }, // Assuming these are open statuses
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    count: { $sum: 1 },
+                },
+            },
+        ]),
+    ]);
+    const avgRating = ((_a = reviewData[0].averageRating[0]) === null || _a === void 0 ? void 0 : _a.avg) || 0;
+    const pendingReviews = ((_b = reviewData[0].pendingCount[0]) === null || _b === void 0 ? void 0 : _b.count) || 0;
+    const approvedStats = reviewData[0].approvedRatings[0] || { avg: 0, count: 0 };
+    const openIssues = ((_c = supportData[0]) === null || _c === void 0 ? void 0 : _c.count) || 0;
+    // Calculate satisfaction rate (percentage of 4+ star average)
+    const satisfactionRate = approvedStats.avg >= 4 ? 100 : (approvedStats.avg / 5) * 100;
+    return {
+        averageRating: Math.round(avgRating * 10) / 10,
+        pendingReviews,
+        openIssues,
+        satisfactionRate: Math.round(satisfactionRate * 10) / 10,
+    };
 };
-exports.updateFacebookContentStats = updateFacebookContentStats;
-exports.StatsService = {
-    createStats,
-    getUserContentStats,
-    getAllPlatformStats,
+const getProviderDashboard = async (providerId) => {
+    var _a;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Calculate start of week (Monday)
+    const startOfWeek = new Date(today);
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    startOfWeek.setDate(diff);
+    startOfWeek.setHours(0, 0, 0, 0);
+    // Get all stats in parallel
+    const [todayServices, completedServices, totalServices, servicesThisWeek, yourRatingData, averageRatingData, totalEarnings,] = await Promise.all([
+        // Today's services (bookings assigned to this provider today)
+        booking_model_1.Booking.countDocuments({
+            staff: providerId,
+            date: { $gte: today, $lt: tomorrow },
+            status: { $nin: ['cancelled'] },
+        }),
+        // Completed services
+        booking_model_1.Booking.countDocuments({
+            staff: providerId,
+            status: 'completed',
+        }),
+        // Total services (all bookings assigned to this provider)
+        booking_model_1.Booking.countDocuments({
+            staff: providerId,
+            status: { $nin: ['cancelled'] },
+        }),
+        // Services this week
+        booking_model_1.Booking.countDocuments({
+            staff: providerId,
+            date: { $gte: startOfWeek, $lt: tomorrow },
+            status: { $nin: ['cancelled'] },
+        }),
+        // Your rating (reviews for services provided by this staff)
+        getProviderRating(providerId),
+        // Average rating (average of all staff ratings)
+        getAverageStaffRating(),
+        // Total earnings
+        booking_model_1.Booking.aggregate([
+            {
+                $match: {
+                    staff: providerId,
+                    status: { $nin: ['cancelled'] },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$price' },
+                },
+            },
+        ]),
+    ]);
+    return {
+        todayServices,
+        completedServices,
+        totalServices,
+        servicesThisWeek, // New field added
+        yourRating: yourRatingData.averageRating,
+        averageRating: averageRatingData,
+        totalEarnings: ((_a = totalEarnings[0]) === null || _a === void 0 ? void 0 : _a.total) || 0,
+    };
+};
+const getAverageStaffRating = async () => {
+    // Get all services created by staff
+    const services = await service_model_1.Service.find({
+        createdBy: { $exists: true, $ne: null },
+    }).select('_id createdBy');
+    const serviceToStaffMap = new Map();
+    services.forEach(service => {
+        serviceToStaffMap.set(service._id.toString(), service.createdBy.toString());
+    });
+    const reviews = await review_model_1.Review.find({
+        service: { $in: Array.from(serviceToStaffMap.keys()) },
+        status: 'approved',
+    });
+    if (reviews.length === 0)
+        return 0;
+    const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+    return Math.round(averageRating * 10) / 10;
+};
+// Get provider's rating (reviews for services they provided)
+const getProviderRating = async (providerId) => {
+    var _a, _b;
+    // Get all services created by this provider
+    const services = await service_model_1.Service.find({ createdBy: providerId }).select('_id');
+    const serviceIds = services.map(service => service._id);
+    if (serviceIds.length === 0) {
+        return { averageRating: 0, totalReviews: 0 };
+    }
+    const reviews = await review_model_1.Review.aggregate([
+        {
+            $match: {
+                service: { $in: serviceIds },
+                status: 'approved',
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                averageRating: { $avg: '$rating' },
+                totalReviews: { $sum: 1 },
+            },
+        },
+    ]);
+    return {
+        averageRating: ((_a = reviews[0]) === null || _a === void 0 ? void 0 : _a.averageRating)
+            ? Math.round(reviews[0].averageRating * 10) / 10
+            : 0,
+        totalReviews: ((_b = reviews[0]) === null || _b === void 0 ? void 0 : _b.totalReviews) || 0,
+    };
+};
+// Get provider summary stats (Total Services, Scheduled, Completed, Earnings)
+const getProviderSummaryStats = async (providerId) => {
+    var _a;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Get all stats in parallel
+    const [totalServices, scheduledServices, completedServices, earnings] = await Promise.all([
+        // Total Services (all bookings assigned to this provider, excluding cancelled)
+        booking_model_1.Booking.countDocuments({
+            staff: providerId,
+            status: { $nin: ['cancelled'] },
+        }),
+        // Scheduled Services (upcoming bookings)
+        booking_model_1.Booking.countDocuments({
+            staff: providerId,
+            date: { $gte: today },
+            status: { $in: ['confirmed', 'scheduled', 'requested'] },
+        }),
+        // Completed Services
+        booking_model_1.Booking.countDocuments({
+            staff: providerId,
+            status: 'completed',
+        }),
+        // Total Earnings (from all non-cancelled bookings)
+        booking_model_1.Booking.aggregate([
+            {
+                $match: {
+                    staff: providerId,
+                    status: { $nin: ['cancelled'] },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$price' },
+                },
+            },
+        ]),
+    ]);
+    return {
+        totalServices,
+        scheduledServices,
+        completedServices,
+        earnings: ((_a = earnings[0]) === null || _a === void 0 ? void 0 : _a.total) || 0,
+    };
+};
+exports.StatsServices = {
+    getDashboardData,
+    getServiceRequests,
+    getRevenueTrend,
+    getClientStats,
+    getStaffStats,
+    getServiceStats,
+    getPaymentStatsClean,
+    getReviewSupportStatsSimple,
+    getProviderDashboard,
+    getProviderSummaryStats,
 };

@@ -12,23 +12,26 @@ const updateStripeProductCatalog = async (productId, payload) => {
     // Map duration to interval
     let interval = 'month';
     let intervalCount = 1;
-    switch (payload.duration) {
-        case '1 month':
-            interval = 'month';
-            intervalCount = 1;
-            break;
-        case '3 months':
-            interval = 'month';
-            intervalCount = 3;
-            break;
-        case '6 months':
-            interval = 'month';
-            intervalCount = 6;
-            break;
-        case '1 year':
-            interval = 'year';
-            intervalCount = 1;
-            break;
+    const isOneTime = payload.duration === 'One Time';
+    if (!isOneTime) {
+        switch (payload.duration) {
+            case '1 month':
+                interval = 'month';
+                intervalCount = 1;
+                break;
+            case '3 months':
+                interval = 'month';
+                intervalCount = 3;
+                break;
+            case '6 months':
+                interval = 'month';
+                intervalCount = 6;
+                break;
+            case '1 year':
+                interval = 'year';
+                intervalCount = 1;
+                break;
+        }
     }
     // Step 0: Update product details in Stripe
     await stripe_1.default.products.update(productId, {
@@ -44,12 +47,15 @@ const updateStripeProductCatalog = async (productId, payload) => {
         await stripe_1.default.prices.update(oldPrice.id, { active: false });
     }
     // Step 2: Create new price
-    const price = await stripe_1.default.prices.create({
+    const priceData = {
         product: productId,
-        unit_amount: payload.price * 100,
+        unit_amount: Math.round(Number(payload.price) * 100),
         currency: 'usd',
-        recurring: { interval, interval_count: intervalCount },
-    });
+    };
+    if (!isOneTime) {
+        priceData.recurring = { interval, interval_count: intervalCount };
+    }
+    const price = await stripe_1.default.prices.create(priceData);
     if (!price)
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to create new price in Stripe');
     // Step 3: Create payment link

@@ -401,6 +401,7 @@ const resendOtp = async (email, authType) => {
             otp,
             type: authType,
         });
+        await emailHelper_1.emailHelper.sendEmail(forgetPasswordEmailTemplate);
         // emailQueue.add('emails', forgetPasswordEmailTemplate)
     }
     return 'OTP sent successfully.';

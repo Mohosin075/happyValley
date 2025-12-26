@@ -1,8 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserSchema = void 0;
+exports.createStaffSchema = exports.STAFF_SPECIALTY = exports.updateUserSchema = void 0;
 const zod_1 = require("zod");
-const user_1 = require("../../../enum/user");
 // ------------------ SUB-SCHEMAS ------------------
 const addressSchema = zod_1.z.object({
     city: zod_1.z.string().optional(),
@@ -28,21 +27,36 @@ const pointSchema = zod_1.z.object({
 });
 // ------------------ UPDATE USER VALIDATION ------------------
 exports.updateUserSchema = zod_1.z.object({
-    body: zod_1.z.object({
+    body: zod_1.z
+        .object({
         name: zod_1.z.string().optional(),
-        email: zod_1.z.string().email().optional(),
         profile: zod_1.z.string().url().optional(),
-        businessName: zod_1.z.string().optional(),
         phone: zod_1.z.string().optional(),
         description: zod_1.z.string().optional(),
-        status: zod_1.z.nativeEnum(user_1.USER_STATUS).optional(),
-        verified: zod_1.z.boolean().optional(),
+        specialty: zod_1.z.string().optional(),
+        images: zod_1.z.array(zod_1.z.string()).optional(),
         address: addressSchema.optional(),
         location: pointSchema.optional(),
-        password: zod_1.z.string().min(6).optional(),
-        role: zod_1.z.nativeEnum(user_1.USER_ROLES).optional(),
         appId: zod_1.z.string().optional(),
         deviceToken: zod_1.z.string().optional(),
-        authentication: authenticationSchema.optional(),
+    })
+        .strict(),
+});
+exports.STAFF_SPECIALTY = zod_1.z.enum([
+    'Cleaning',
+    'Cooking',
+    'Laundry',
+    'Grocery',
+    'Maintenance',
+]);
+exports.createStaffSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        name: zod_1.z.string({ required_error: 'Name is required' }),
+        email: zod_1.z.string().email({ message: 'Invalid email address' }),
+        phone: zod_1.z.string().optional(),
+        specialty: zod_1.z.string().optional(),
+        description: zod_1.z.string().optional(),
+        services: zod_1.z.array(zod_1.z.string()).optional(),
+        address: addressSchema.optional(),
     }),
 });

@@ -137,7 +137,7 @@ const createUserZodSchema = zod_1.z.object({
             var _a;
             const p = (0, libphonenumber_js_1.parsePhoneNumberFromString)(val);
             return (_a = p === null || p === void 0 ? void 0 : p.isValid()) !== null && _a !== void 0 ? _a : false;
-        }, { message: 'Invalid phone number' }),
+        }, { message: 'Invalid phone number' }).optional(),
         address: addressSchema.optional(),
         // role: z.enum([USER_ROLES.ADMIN, USER_ROLES.CLIENT, USER_ROLES.STAFF], {
         //   message: 'Role must be one of admin, user, creator',

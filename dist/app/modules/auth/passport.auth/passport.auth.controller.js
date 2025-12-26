@@ -8,27 +8,40 @@ const catchAsync_1 = __importDefault(require("../../../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../../../shared/sendResponse"));
 const passport_auth_service_1 = require("./passport.auth.service");
 const common_1 = require("../common");
+const config_1 = __importDefault(require("../../../../config"));
 const login = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     const { deviceToken, password } = req.body;
     console.log({ deviceToken, password });
     const result = await common_1.AuthCommonServices.handleLoginLogic({ deviceToken: deviceToken, password: password }, user);
     const { status, message, accessToken, refreshToken, role } = result;
+    res.cookie('refreshToken', refreshToken, {
+        secure: config_1.default.node_env === 'production',
+        httpOnly: true,
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60 * 24 * 365,
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: status,
         success: true,
         message: message,
-        data: { accessToken, refreshToken, role },
+        data: { accessToken, role },
     });
 });
 const googleAuthCallback = (0, catchAsync_1.default)(async (req, res) => {
     const result = await passport_auth_service_1.PassportAuthServices.handleGoogleLogin(req.user);
     const { status, message, accessToken, refreshToken, role } = result;
+    res.cookie('refreshToken', refreshToken, {
+        secure: config_1.default.node_env === 'production',
+        httpOnly: true,
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60 * 24 * 365,
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: status,
         success: true,
         message: message,
-        data: { accessToken, refreshToken, role },
+        data: { accessToken, role },
     });
 });
 exports.PassportAuthController = {

@@ -18,26 +18,13 @@ const createPlanToDB = async (payload) => {
         duration: payload.duration,
         price: Number(payload.price),
     };
-    // Check if a free plan (price: 0) already exists
-    if (productPayload.price === 0) {
-        const existingFreePlan = await plan_model_1.Plan.findOne({ price: 0, status: 'active' });
-        if (existingFreePlan) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Free plan "${existingFreePlan.title}" already exists. Consider updating it instead.`);
-        }
-        // Create free plan without Stripe integration
-        payload.paymentLink = '';
-        payload.productId = '';
-        payload.priceId = '';
-        const freePlan = await plan_model_1.Plan.create(payload);
-        return freePlan;
-    }
     // For paid plans, create a Stripe product
     const product = await (0, createStripeProductCatalog_1.createStripeProductCatalog)(productPayload);
     if (!product) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to create subscription product in Stripe.');
     }
     // Attach Stripe details to payload
-    payload.paymentLink = product.paymentLink;
+    // payload.paymentLink = product.paymentLink
     payload.productId = product.productId;
     payload.priceId = product.priceId;
     // Create the plan in DB
