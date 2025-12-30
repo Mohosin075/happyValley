@@ -63,9 +63,10 @@ router
   .route('/:id/status')
   .patch(
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.STAFF),
+    validateRequest(BookingValidations.updateBookingStatus),
     BookingController.updateBookingStatus,
   )
-  
+
 router
   .route('/:id/add-price')
   .patch(

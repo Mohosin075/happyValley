@@ -109,10 +109,6 @@ const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const { status } = req.body
 
-  if (!status) {
-    throw new Error('Status is required')
-  }
-
   const result = await BookingServices.updateBookingStatus(id, status)
 
   sendResponse(res, {
