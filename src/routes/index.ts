@@ -14,6 +14,8 @@ import { AgreementRoutes } from '../app/modules/agreement/agreement.route'
 import { ReviewRoutes } from '../app/modules/review/review.route'
 import { StatsRoutes } from '../app/modules/stats/stats.route'
 import { InvoiceRoutes } from '../app/modules/invoice/invoice.route'
+import { MessageRoutes } from '../app/modules/message/message.routes'
+import { ChatRoutes } from '../app/modules/chat/chat.routes'
 
 const router = express.Router()
 
@@ -33,6 +35,8 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/review', route: ReviewRoutes },
   { path: '/stats', route: StatsRoutes },
   { path: '/invoice', route: InvoiceRoutes },
+  { path: '/message', route: MessageRoutes },
+  { path: '/chat', route: ChatRoutes },
 ]
 
 apiRoutes.forEach(route => {
