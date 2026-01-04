@@ -24,6 +24,12 @@ router.post(
 )
 
 router.get(
+  '/export',
+  // auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  PaymentController.exportPayments,
+)
+
+router.get(
   '/',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.CLIENT),
   PaymentController.getAllPayments,

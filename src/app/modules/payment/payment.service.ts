@@ -1,7 +1,9 @@
 import { StatusCodes } from 'http-status-codes'
-import Stripe from 'stripe'
+import ExcelJS from 'exceljs'
+import { Response } from 'express'
 import config from '../../../config'
 import stripe from '../../../config/stripe'
+import Stripe from 'stripe'
 import ApiError from '../../../errors/ApiError'
 import { Booking } from '../booking/booking.model'
 import { JwtPayload } from 'jsonwebtoken'
@@ -18,15 +20,8 @@ import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
 import { paymentSearchableFields } from './payment.constants'
 
-
-const getAllPayments = async (
-  filterables: IPaymentFilterables,
-  pagination: IPaginationOptions,
-) => {
+const buildPaymentQuery = (filterables: IPaymentFilterables) => {
   const { searchTerm, ...filterData } = filterables
-  const { page, skip, limit, sortBy, sortOrder } =
-    paginationHelper.calculatePagination(pagination)
-
   const andConditions = []
 
   // Search functionality
@@ -50,7 +45,16 @@ const getAllPayments = async (
     })
   }
 
-  const whereConditions = andConditions.length ? { $and: andConditions } : {}
+  return andConditions.length ? { $and: andConditions } : {}
+}
+
+const getAllPayments = async (
+  filterables: IPaymentFilterables,
+  pagination: IPaginationOptions,
+) => {
+  const whereConditions = buildPaymentQuery(filterables)
+  const { page, skip, limit, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(pagination)
 
   const [result, total] = await Promise.all([
     Payment.find(whereConditions)
@@ -72,6 +76,58 @@ const getAllPayments = async (
     },
     data: result,
   }
+}
+
+const exportPaymentsToExcel = async (
+  filterables: IPaymentFilterables,
+  res: Response,
+) => {
+  const whereConditions = buildPaymentQuery(filterables)
+
+  // Create Workbook and Worksheet
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet('Payments')
+
+  // Define Columns
+  worksheet.columns = [
+    { header: 'Transaction ID', key: 'transactionId', width: 30 },
+    { header: 'User Email', key: 'userEmail', width: 30 },
+    { header: 'Amount', key: 'amount', width: 15 },
+    { header: 'Type', key: 'paymentType', width: 20 },
+    { header: 'Status', key: 'status', width: 15 },
+    { header: 'Gateway', key: 'paymentGateway', width: 15 },
+    { header: 'Date', key: 'createdAt', width: 20 },
+  ]
+
+  // Fetch Data (using cursor for efficiency if large, but simple find is okay for now)
+  const payments = await Payment.find(whereConditions).populate('user')
+
+  // Add Rows
+  payments.forEach((payment: any) => {
+    worksheet.addRow({
+      transactionId: payment.transactionId,
+      userEmail: payment.user?.email || 'N/A',
+      amount: payment.amount,
+      paymentType: payment.paymentType,
+      status: payment.status,
+      paymentGateway: payment.paymentGateway,
+      createdAt: payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : '',
+    })
+  })
+
+  // Set Headers for Download
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  )
+  res.setHeader(
+    'Content-Disposition',
+    'attachment; filename=' + 'payments.xlsx',
+  )
+
+  // Write to Response
+  await workbook.xlsx.write(res)
+  res.end()
 }
 
 const createSession = async (
@@ -325,4 +381,5 @@ export const PaymentService = {
   createInvoiceCheckoutSession,
   fulfillBookingPayment,
   getAllPayments,
+  exportPaymentsToExcel,
 }

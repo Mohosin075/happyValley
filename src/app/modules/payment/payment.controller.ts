@@ -69,9 +69,15 @@ const getAllPayments = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const exportPayments = catchAsync(async (req: Request, res: Response) => {
+  const filterables = pick(req.query, paymentFilterables)
+  await PaymentService.exportPaymentsToExcel(filterables, res)
+})
+
 export const PaymentController = {
   createBookingFeeSession,
   createServiceChargeSession,
   createInvoiceSession,
   getAllPayments,
+  exportPayments,
 }
