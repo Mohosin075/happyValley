@@ -14,8 +14,7 @@ router
     PlanController.createPlan,
   )
   .get(
-    auth(USER_ROLES.ADMIN, USER_ROLES.CLIENT, USER_ROLES.STAFF),
-    PlanController.getPlan,
+    PlanController.getPlan
   )
 
 router

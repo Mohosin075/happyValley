@@ -13,6 +13,66 @@ import {
   NOTIFICATION_MESSAGES,
   NOTIFICATION_TYPES,
 } from '../notifications/notifications.constants'
+import { IPaymentFilterables } from './payment.interface'
+import { IPaginationOptions } from '../../../interfaces/pagination'
+import { paginationHelper } from '../../../helpers/paginationHelper'
+import { paymentSearchableFields } from './payment.constants'
+
+
+const getAllPayments = async (
+  filterables: IPaymentFilterables,
+  pagination: IPaginationOptions,
+) => {
+  const { searchTerm, ...filterData } = filterables
+  const { page, skip, limit, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(pagination)
+
+  const andConditions = []
+
+  // Search functionality
+  if (searchTerm) {
+    andConditions.push({
+      $or: paymentSearchableFields.map(field => ({
+        [field]: {
+          $regex: searchTerm,
+          $options: 'i',
+        },
+      })),
+    })
+  }
+
+  // Filter functionality
+  if (Object.keys(filterData).length) {
+    andConditions.push({
+      $and: Object.entries(filterData).map(([key, value]) => ({
+        [key]: value,
+      })),
+    })
+  }
+
+  const whereConditions = andConditions.length ? { $and: andConditions } : {}
+
+  const [result, total] = await Promise.all([
+    Payment.find(whereConditions)
+      .populate('user')
+      .populate('booking')
+      .populate('subscription')
+      .skip(skip)
+      .limit(limit)
+      .sort({ [sortBy]: sortOrder }),
+    Payment.countDocuments(whereConditions),
+  ])
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    data: result,
+  }
+}
 
 const createSession = async (
   user: any,
@@ -264,4 +324,5 @@ export const PaymentService = {
   createServiceChargeCheckoutSession,
   createInvoiceCheckoutSession,
   fulfillBookingPayment,
+  getAllPayments,
 }
