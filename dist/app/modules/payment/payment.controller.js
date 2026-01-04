@@ -8,6 +8,9 @@ const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const http_status_codes_1 = require("http-status-codes");
 const payment_service_1 = require("./payment.service");
+const pick_1 = __importDefault(require("../../../shared/pick"));
+const payment_constants_1 = require("./payment.constants");
+const pagination_1 = require("../../../interfaces/pagination");
 const createBookingFeeSession = (0, catchAsync_1.default)(async (req, res) => {
     const { bookingId } = req.params;
     const result = await payment_service_1.PaymentService.createBookingFeeCheckoutSession(req.user, bookingId);
@@ -38,8 +41,25 @@ const createInvoiceSession = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getAllPayments = (0, catchAsync_1.default)(async (req, res) => {
+    const filterables = (0, pick_1.default)(req.query, payment_constants_1.paymentFilterables);
+    const pagination = (0, pick_1.default)(req.query, pagination_1.paginationFields);
+    const result = await payment_service_1.PaymentService.getAllPayments(filterables, pagination);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Payments retrieved successfully',
+        data: result,
+    });
+});
+const exportPayments = (0, catchAsync_1.default)(async (req, res) => {
+    const filterables = (0, pick_1.default)(req.query, payment_constants_1.paymentFilterables);
+    await payment_service_1.PaymentService.exportPaymentsToExcel(filterables, res);
+});
 exports.PaymentController = {
     createBookingFeeSession,
     createServiceChargeSession,
     createInvoiceSession,
+    getAllPayments,
+    exportPayments,
 };

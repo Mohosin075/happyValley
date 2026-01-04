@@ -10,6 +10,7 @@ const handleZodError_2 = __importDefault(require("../../errors/handleZodError"))
 const handleCastError_1 = __importDefault(require("../../errors/handleCastError"));
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const globalErrorHandler = (error, req, res, next) => {
+    var _a, _b;
     config_1.default.node_env === 'development'
         ? console.log('Inside Global Error Handler🪐', error)
         : console.log('Inside Global Error Handler🪐', error);
@@ -40,6 +41,19 @@ const globalErrorHandler = (error, req, res, next) => {
         errorMessages = (error === null || error === void 0 ? void 0 : error.message)
             ? [{ path: '', message: error === null || error === void 0 ? void 0 : error.message }]
             : [];
+    }
+    else if ((error === null || error === void 0 ? void 0 : error.statusCode) === 429 ||
+        ((_a = error === null || error === void 0 ? void 0 : error.message) === null || _a === void 0 ? void 0 : _a.includes('insufficient_quota')) ||
+        ((_b = error === null || error === void 0 ? void 0 : error.message) === null || _b === void 0 ? void 0 : _b.includes('exceeded your current quota'))) {
+        statusCode = 429;
+        message =
+            'The requested service is currently unavailable due to technical limits. Please try again later.';
+        errorMessages = [
+            {
+                path: '',
+                message: message,
+            },
+        ];
     }
     else if (error instanceof Error) {
         message = error === null || error === void 0 ? void 0 : error.message;

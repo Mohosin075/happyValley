@@ -29,7 +29,7 @@ router
 // Update booking status route: /bookings/:id/status
 router
     .route('/:id/status')
-    .patch((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF), booking_controller_1.BookingController.updateBookingStatus);
+    .patch((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF), (0, validateRequest_1.default)(booking_validation_1.BookingValidations.updateBookingStatus), booking_controller_1.BookingController.updateBookingStatus);
 router
     .route('/:id/add-price')
     .patch((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(booking_validation_1.BookingValidations.updatePrice), booking_controller_1.BookingController.updatePrice);
