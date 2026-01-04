@@ -50,6 +50,7 @@ export interface IBooking {
   paymentId?: string
   invoice?: Types.ObjectId
   isInvoiced?: boolean
+  googleMapsUrl?: string
 }
 
 export type BookingModel = Model<IBooking, {}, {}>
