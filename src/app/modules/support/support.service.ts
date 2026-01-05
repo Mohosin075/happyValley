@@ -15,14 +15,14 @@ const createSupport = async (
   payload: ISupport
 ): Promise<ISupport> => {
 
-  console.log({user, payload})
+  console.log({ user, payload })
 
-  const data = {...payload, userId: user?.authId, status : SUPPORT_STATUS.IN_PROGRESS};
+  const data = { ...payload, userId: user?.authId, status: SUPPORT_STATUS.IN_PROGRESS };
 
   try {
     const result = await Support.create(data);
     if (!result) {
-      
+
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
         'Failed to create Support, please try again with valid data.'
@@ -31,7 +31,7 @@ const createSupport = async (
 
     return result;
   } catch (error: any) {
-    
+
     if (error.code === 11000) {
       throw new ApiError(StatusCodes.CONFLICT, 'Duplicate entry found');
     }
@@ -48,11 +48,19 @@ const getAllSupports = async (
 
   const [result, total] = await Promise.all([
     Support
-      .find({status  : {$nin: [SUPPORT_STATUS.DELETED]}})
+      .find({ status: { $nin: [SUPPORT_STATUS.DELETED] } })
       .skip(skip)
       .limit(limit)
-      .sort({ [sortBy]: sortOrder }).populate('userId'),
-    Support.countDocuments({status  : {$nin: [SUPPORT_STATUS.DELETED]}}),
+      .sort({ [sortBy]: sortOrder })
+      .populate([
+        { path: 'userId', select: 'name email profile' },
+        {
+          path: 'bookingId',
+          select: 'serviceType.title staff',
+          populate: { path: 'staff', select: 'name profile' },
+        },
+      ]),
+    Support.countDocuments({ status: { $nin: [SUPPORT_STATUS.DELETED] } }),
   ]);
 
   return {
@@ -124,7 +132,7 @@ const deleteSupport = async (id: string): Promise<ISupport> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Support ID');
   }
 
-    const isSupportExist = await Support.findOne({
+  const isSupportExist = await Support.findOne({
     _id: id,
     status: { $nin: [SUPPORT_STATUS.DELETED] }
   });
