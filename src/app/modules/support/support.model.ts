@@ -7,6 +7,7 @@ const supportSchema = new Schema<ISupport, SupportModel>(
     userId: { type: Schema.Types.ObjectId, ref: 'User' },
     subject: { type: String },
     message: { type: String },
+    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking' },
     status: {
       type: String,
       enum: Object.values(SUPPORT_STATUS),

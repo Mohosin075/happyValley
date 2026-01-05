@@ -269,17 +269,24 @@ const deleteReview = async (id: string, user: JwtPayload) => {
 }
 
 const getSingleReview = async (id: string, user: JwtPayload) => {
-  console.log('Fetching single review with ID:', id)
-  try {
-    const review = await Review.findById(id)
-    if (!review) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Review not found')
-    }
 
-    return review
-  } catch (error) {
-    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Get review failed')
+  const review = await Review.findById(id)
+  if (!review) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Review not found')
   }
+
+  return review
+
+}
+
+
+const updateReviewStatus = async (id: string, status: string) => {
+  const review = await Review.findByIdAndUpdate(id, { status })
+  if (!review) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Review not found')
+  }
+  return review
+
 }
 
 export const ReviewServices = {
@@ -288,4 +295,5 @@ export const ReviewServices = {
   updateReview,
   deleteReview,
   getSingleReview,
+  updateReviewStatus,
 }
