@@ -3,9 +3,9 @@ import { IReview, ReviewModel } from './review.interface'
 
 const reviewSchema = new Schema<IReview, ReviewModel>(
   {
-    service: {
+    bookingId: {
       type: Schema.Types.ObjectId,
-      ref: 'Service',
+      ref: 'Booking',
       required: true,
     },
     reviewer: {
@@ -38,6 +38,6 @@ const reviewSchema = new Schema<IReview, ReviewModel>(
   },
 )
 
-reviewSchema.index({ service: 1, status: 1 })
+reviewSchema.index({ bookingId: 1, status: 1 })
 
 export const Review = model<IReview, ReviewModel>('Review', reviewSchema)

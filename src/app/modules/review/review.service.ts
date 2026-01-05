@@ -7,6 +7,7 @@ import mongoose from 'mongoose'
 import { User } from '../user/user.model'
 import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
+import { Booking } from '../booking/booking.model'
 // import { redisClient } from '../../../helpers/redis';
 
 const createReview = async (user: JwtPayload, payload: IReview) => {
@@ -17,6 +18,13 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
   }
+
+  const isBookingExist = await Booking.findById(payload.bookingId)
+
+  if (!isBookingExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Booking not found')
+  }
+
 
   const reviewData = { ...payload, reviewer: user.authId }
 
@@ -74,24 +82,22 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
 }
 
 const getAllReviews = async (
-  type: 'reviewer' | 'reviewee',
   paginationOptions: IPaginationOptions,
 ) => {
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
 
-  // const cacheKey = `reviews:${type}:${user.authId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
-
-  // const cachedResult = await redisClient.get(cacheKey);
-
-  // if(cachedResult){
-  //   return JSON.parse(cachedResult);
-  // }
-
   const [result, total] = await Promise.all([
     Review.find({})
-      .populate('reviewer')
-      .populate('reviewee')
+      .populate([
+        { path: 'reviewer', select: 'name email profile' },
+        { path: 'reviewee', select: 'name email profile' },
+        {
+          path: 'bookingId',
+          select: 'serviceType.title staff',
+          populate: { path: 'staff', select: 'name profile' },
+        },
+      ])
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder }),

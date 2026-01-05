@@ -33,9 +33,8 @@ const updateReview = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getAllReviews = catchAsync(async (req: Request, res: Response) => {
-  const type = req.params.type as 'reviewer' | 'reviewee'
   const paginationOptions = pick(req.query, paginationFields)
-  const result = await ReviewServices.getAllReviews(type, paginationOptions)
+  const result = await ReviewServices.getAllReviews(paginationOptions)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

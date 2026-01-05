@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const createReviewSchema = z.object({
   body: z.object({
-    service: z.string(),
+    bookingId: z.string(),
     title: z.string(),
     reviewee: z.string().optional(),
     rating: z.number(),

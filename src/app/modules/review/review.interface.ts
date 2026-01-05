@@ -3,7 +3,7 @@ import { IUser } from '../user/user.interface'
 
 export type IReview = {
   _id?: Types.ObjectId
-  service: Types.ObjectId
+  bookingId: Types.ObjectId
   title?: string
   reviewer: Types.ObjectId | IUser
   reviewee?: Types.ObjectId | IUser
