@@ -92,15 +92,18 @@ const getAllReviews = async (
       .populate([
         { path: 'reviewer', select: 'name email profile' },
         { path: 'reviewee', select: 'name email profile' },
+      ])
+      .skip(skip)
+      .limit(limit)
+      .sort({ [sortBy]: sortOrder })
+      .populate([
+        // { path: 'userId', select: 'name email profile' },
         {
           path: 'bookingId',
           select: 'serviceType.title staff',
           populate: { path: 'staff', select: 'name profile' },
         },
-      ])
-      .skip(skip)
-      .limit(limit)
-      .sort({ [sortBy]: sortOrder }),
+      ]),
     Review.countDocuments({}),
   ])
 
