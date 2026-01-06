@@ -17,6 +17,11 @@ router
     .route('/')
     .get(review_controller_1.ReviewController.getAllReviews)
     .post((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), (0, validateRequest_1.default)(review_validation_1.createReviewSchema), review_controller_1.ReviewController.createReview);
+router
+    .route('/:id/status')
+    .patch((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), 
+// validateRequest(updateReviewSchema),
+review_controller_1.ReviewController.updateReviewStatus);
 // router.route('/:type')
 //   .get(auth(...roles), ReviewController.getAllReviews);
 router

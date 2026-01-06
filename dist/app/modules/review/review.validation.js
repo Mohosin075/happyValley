@@ -4,7 +4,7 @@ exports.updateReviewSchema = exports.createReviewSchema = void 0;
 const zod_1 = require("zod");
 exports.createReviewSchema = zod_1.z.object({
     body: zod_1.z.object({
-        service: zod_1.z.string(),
+        bookingId: zod_1.z.string(),
         title: zod_1.z.string(),
         reviewee: zod_1.z.string().optional(),
         rating: zod_1.z.number(),

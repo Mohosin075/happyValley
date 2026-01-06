@@ -7,6 +7,7 @@ const supportSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     subject: { type: String },
     message: { type: String },
+    bookingId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Booking' },
     status: {
         type: String,
         enum: Object.values(support_1.SUPPORT_STATUS),

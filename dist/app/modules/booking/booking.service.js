@@ -65,6 +65,7 @@ const createBooking = async (user, payload) => {
         if (payload.staff && payload.date) {
             await availability_service_1.AvailabilityServices.updateAvailability(payload.staff, payload.date, true);
         }
+        await result.populate('user');
         return result;
     }
     catch (error) {
@@ -240,6 +241,9 @@ const getBookingsByDate = async (date) => {
             $gte: startOfDay,
             $lte: endOfDay,
         },
+    }).populate({
+        path: 'user',
+        select: '-password -__v -createdAt -updatedAt -authentication',
     });
     return bookings;
 };

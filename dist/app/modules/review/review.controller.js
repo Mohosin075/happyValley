@@ -10,6 +10,7 @@ const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const http_status_codes_1 = require("http-status-codes");
 const pagination_1 = require("../../../interfaces/pagination");
 const pick_1 = __importDefault(require("../../../shared/pick"));
+const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const createReview = (0, catchAsync_1.default)(async (req, res) => {
     const reviewData = req.body;
     const result = await review_service_1.ReviewServices.createReview(req.user, reviewData);
@@ -32,9 +33,8 @@ const updateReview = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getAllReviews = (0, catchAsync_1.default)(async (req, res) => {
-    const type = req.params.type;
     const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
-    const result = await review_service_1.ReviewServices.getAllReviews(type, paginationOptions);
+    const result = await review_service_1.ReviewServices.getAllReviews(paginationOptions);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -62,10 +62,25 @@ const getSingleReview = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const updateReviewStatus = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const status = req.body.status;
+    if (!status) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Status is required');
+    }
+    const result = await review_service_1.ReviewServices.updateReviewStatus(id, status);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Review updated successfully',
+        data: result,
+    });
+});
 exports.ReviewController = {
     createReview,
     updateReview,
     getAllReviews,
     deleteReview,
     getSingleReview,
+    updateReviewStatus,
 };

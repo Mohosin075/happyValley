@@ -10,12 +10,17 @@ const review_model_1 = require("./review.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const user_model_1 = require("../user/user.model");
 const paginationHelper_1 = require("../../../helpers/paginationHelper");
+const booking_model_1 = require("../booking/booking.model");
 // import { redisClient } from '../../../helpers/redis';
 const createReview = async (user, payload) => {
     payload.reviewer = user.authId;
     const isUserExist = await user_model_1.User.findById(user.authId);
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+    }
+    const isBookingExist = await booking_model_1.Booking.findById(payload.bookingId);
+    if (!isBookingExist) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Booking not found');
     }
     const reviewData = { ...payload, reviewer: user.authId };
     const session = await mongoose_1.default.startSession();
@@ -61,20 +66,25 @@ const createReview = async (user, payload) => {
         await session.endSession();
     }
 };
-const getAllReviews = async (type, paginationOptions) => {
+const getAllReviews = async (paginationOptions) => {
     const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(paginationOptions);
-    // const cacheKey = `reviews:${type}:${user.authId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
-    // const cachedResult = await redisClient.get(cacheKey);
-    // if(cachedResult){
-    //   return JSON.parse(cachedResult);
-    // }
     const [result, total] = await Promise.all([
         review_model_1.Review.find({})
-            .populate('reviewer')
-            .populate('reviewee')
+            .populate([
+            { path: 'reviewer', select: 'name email profile' },
+            { path: 'reviewee', select: 'name email profile' },
+        ])
             .skip(skip)
             .limit(limit)
-            .sort({ [sortBy]: sortOrder }),
+            .sort({ [sortBy]: sortOrder })
+            .populate([
+            // { path: 'userId', select: 'name email profile' },
+            {
+                path: 'bookingId',
+                select: 'serviceType.title staff',
+                populate: { path: 'staff', select: 'name profile' },
+            },
+        ]),
         review_model_1.Review.countDocuments({}),
     ]);
     //cache the result
@@ -208,17 +218,18 @@ const deleteReview = async (id, user) => {
     }
 };
 const getSingleReview = async (id, user) => {
-    console.log('Fetching single review with ID:', id);
-    try {
-        const review = await review_model_1.Review.findById(id);
-        if (!review) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Review not found');
-        }
-        return review;
+    const review = await review_model_1.Review.findById(id);
+    if (!review) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Review not found');
     }
-    catch (error) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Get review failed');
+    return review;
+};
+const updateReviewStatus = async (id, status) => {
+    const review = await review_model_1.Review.findByIdAndUpdate(id, { status });
+    if (!review) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Review not found');
     }
+    return review;
 };
 exports.ReviewServices = {
     createReview,
@@ -226,4 +237,5 @@ exports.ReviewServices = {
     updateReview,
     deleteReview,
     getSingleReview,
+    updateReviewStatus,
 };

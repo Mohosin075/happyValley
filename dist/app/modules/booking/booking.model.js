@@ -88,6 +88,12 @@ bookingSchema.virtual('googleMapsUrl').get(function () {
     }
     return null;
 });
+bookingSchema.virtual('userPhoneUrl').get(function () {
+    if (this.user && this.user.phone) {
+        return `tel:${this.user.phone}`;
+    }
+    return null;
+});
 bookingSchema.index({ service: 1, status: 1, createdAt: -1 });
 bookingSchema.index({ date: 1 });
 bookingSchema.index({ user: 1 });
