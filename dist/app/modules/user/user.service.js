@@ -71,11 +71,11 @@ const createAdmin = async () => {
         logger_1.logger.log('info', 'Admin account already exist, skipping creation.🦥');
         return isAdminExist;
     }
-    const result = await user_model_1.User.create([admin]);
+    const result = await user_model_1.User.create(admin);
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to create admin');
     }
-    return result[0];
+    return result;
 };
 const createStaff = async (user, payload) => {
     var _a, _b;
