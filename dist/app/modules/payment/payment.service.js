@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentService = void 0;
 const http_status_codes_1 = require("http-status-codes");
+const exceljs_1 = __importDefault(require("exceljs"));
 const config_1 = __importDefault(require("../../../config"));
 const stripe_1 = __importDefault(require("../../../config/stripe"));
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
@@ -14,6 +15,92 @@ const payment_model_1 = require("./payment.model");
 const invoice_model_1 = require("../invoice/invoice.model");
 const notifications_service_1 = require("../notifications/notifications.service");
 const notifications_constants_1 = require("../notifications/notifications.constants");
+const paginationHelper_1 = require("../../../helpers/paginationHelper");
+const payment_constants_1 = require("./payment.constants");
+const buildPaymentQuery = (filterables) => {
+    const { searchTerm, ...filterData } = filterables;
+    const andConditions = [];
+    // Search functionality
+    if (searchTerm) {
+        andConditions.push({
+            $or: payment_constants_1.paymentSearchableFields.map(field => ({
+                [field]: {
+                    $regex: searchTerm,
+                    $options: 'i',
+                },
+            })),
+        });
+    }
+    // Filter functionality
+    if (Object.keys(filterData).length) {
+        andConditions.push({
+            $and: Object.entries(filterData).map(([key, value]) => ({
+                [key]: value,
+            })),
+        });
+    }
+    return andConditions.length ? { $and: andConditions } : {};
+};
+const getAllPayments = async (filterables, pagination) => {
+    const whereConditions = buildPaymentQuery(filterables);
+    const { page, skip, limit, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(pagination);
+    const [result, total] = await Promise.all([
+        payment_model_1.Payment.find(whereConditions)
+            .populate('user')
+            .populate('booking')
+            .populate('subscription')
+            .skip(skip)
+            .limit(limit)
+            .sort({ [sortBy]: sortOrder }),
+        payment_model_1.Payment.countDocuments(whereConditions),
+    ]);
+    return {
+        meta: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+        },
+        data: result,
+    };
+};
+const exportPaymentsToExcel = async (filterables, res) => {
+    const whereConditions = buildPaymentQuery(filterables);
+    // Create Workbook and Worksheet
+    const workbook = new exceljs_1.default.Workbook();
+    const worksheet = workbook.addWorksheet('Payments');
+    // Define Columns
+    worksheet.columns = [
+        { header: 'Transaction ID', key: 'transactionId', width: 30 },
+        { header: 'User Email', key: 'userEmail', width: 30 },
+        { header: 'Amount', key: 'amount', width: 15 },
+        { header: 'Type', key: 'paymentType', width: 20 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Gateway', key: 'paymentGateway', width: 15 },
+        { header: 'Date', key: 'createdAt', width: 20 },
+    ];
+    // Fetch Data (using cursor for efficiency if large, but simple find is okay for now)
+    const payments = await payment_model_1.Payment.find(whereConditions).populate('user');
+    // Add Rows
+    payments.forEach((payment) => {
+        var _a;
+        worksheet.addRow({
+            transactionId: payment.transactionId,
+            userEmail: ((_a = payment.user) === null || _a === void 0 ? void 0 : _a.email) || 'N/A',
+            amount: payment.amount,
+            paymentType: payment.paymentType,
+            status: payment.status,
+            paymentGateway: payment.paymentGateway,
+            createdAt: payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : '',
+        });
+    });
+    // Set Headers for Download
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=' + 'payments.xlsx');
+    // Write to Response
+    await workbook.xlsx.write(res);
+    res.end();
+};
 const createSession = async (user, booking, type, amount) => {
     const session = await stripe_1.default.checkout.sessions.create({
         mode: 'payment',
@@ -200,4 +287,6 @@ exports.PaymentService = {
     createServiceChargeCheckoutSession,
     createInvoiceCheckoutSession,
     fulfillBookingPayment,
+    getAllPayments,
+    exportPaymentsToExcel,
 };

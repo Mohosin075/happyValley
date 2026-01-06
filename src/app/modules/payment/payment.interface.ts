@@ -11,4 +11,15 @@ export type IPayment = {
   paymentGateway: 'stripe'
 }
 
+
+export type IPaymentFilterables = {
+  searchTerm?: string
+  booking?: Types.ObjectId
+  subscription?: Types.ObjectId
+  paymentType?: 'booking_fee' | 'service_charge' | 'subscription'
+  transactionId?: string
+  status?: 'pending' | 'completed' | 'failed'
+  paymentGateway?: 'stripe'
+}
+
 export type PaymentModel = Model<IPayment, Record<string, unknown>>

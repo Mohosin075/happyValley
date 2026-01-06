@@ -3,26 +3,18 @@ import { IReview, ReviewModel } from './review.interface'
 
 const reviewSchema = new Schema<IReview, ReviewModel>(
   {
-    service: {
+    bookingId: {
       type: Schema.Types.ObjectId,
-      ref: 'Service',
+      ref: 'Booking',
       required: true,
     },
     reviewer: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      populate: {
-        path: 'reviewer',
-        select: 'name lastName fullName profile role',
-      },
     },
     reviewee: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      populate: {
-        path: 'reviewee',
-        select: 'name lastName fullName profile role',
-      },
     },
     title: { type: String, required: true },
     rating: { type: Number, required: true },
@@ -38,6 +30,6 @@ const reviewSchema = new Schema<IReview, ReviewModel>(
   },
 )
 
-reviewSchema.index({ service: 1, status: 1 })
+reviewSchema.index({ bookingId: 1, status: 1 })
 
 export const Review = model<IReview, ReviewModel>('Review', reviewSchema)

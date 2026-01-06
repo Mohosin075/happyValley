@@ -99,73 +99,101 @@ export const sendMessageToGroceryBot = catchAsync(
     // -----------------------------------------
     // AI: Extract Kitchen Grocery Item Details
     // -----------------------------------------
-    const aiExtract = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a kitchen restock assistant for a professional kitchen. Your role is to:
+    try {
+      const aiExtract = await client.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a kitchen restock assistant for a professional kitchen. Your role is to:
 1. Help collect grocery lists for kitchen restocking
 2. Confirm item details including type, brand, and quantity
 3. Provide kitchen-specific suggestions (storage tips, alternatives, freshness advice)
 4. NOT provide general grocery shopping advice - focus on kitchen operations
 
 Extract items using function calls when users mention specific grocery items.`,
-        },
-        ...conversationMessages,
-      ],
-      tools: [{ type: 'function', function: itemExtractionSchema }],
-      tool_choice: 'auto',
-    })
-
-    const choice = aiExtract.choices[0]
-    const toolCalls = choice.message.tool_calls
-
-    // ========================================
-    // If AI extracted an item via function call
-    // ========================================
-    if (choice.finish_reason === 'tool_calls' && toolCalls?.length) {
-      const firstToolCall = toolCalls[0] as any
-      const extracted = JSON.parse(firstToolCall.function.arguments)
-
-      // Save extracted item with all details
-      session.items.push({
-        name: extracted.name,
-        quantity: extracted.quantity,
-        type: extracted.type || undefined,
-        brand: extracted.brand || undefined,
+          },
+          ...conversationMessages,
+        ],
+        tools: [{ type: 'function', function: itemExtractionSchema }],
+        tool_choice: 'auto',
       })
 
-      // Generate kitchen-specific suggestion
-      const suggestionAI = await client.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a kitchen management expert. Provide brief, practical advice about the grocery item for kitchen operations. Focus on:
+      const choice = aiExtract.choices[0]
+      const toolCalls = choice.message.tool_calls
+
+      // ========================================
+      // If AI extracted an item via function call
+      // ========================================
+      if (choice.finish_reason === 'tool_calls' && toolCalls?.length) {
+        const firstToolCall = toolCalls[0] as any
+        const extracted = JSON.parse(firstToolCall.function.arguments)
+
+        // Save extracted item with all details
+        session.items.push({
+          name: extracted.name,
+          quantity: extracted.quantity,
+          type: extracted.type || undefined,
+          brand: extracted.brand || undefined,
+        })
+
+        // Generate kitchen-specific suggestion
+        const suggestionAI = await client.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a kitchen management expert. Provide brief, practical advice about the grocery item for kitchen operations. Focus on:
 - Storage recommendations
 - Freshness indicators
 - Kitchen-specific usage tips
 - Alternative options if unavailable
 Keep responses concise (2-3 sentences max).`,
-          },
-          {
-            role: 'user',
-            content: `Item: ${extracted.name}, Quantity: ${extracted.quantity}${extracted.type ? `, Type: ${extracted.type}` : ''}${extracted.brand ? `, Brand: ${extracted.brand}` : ''}`,
-          },
-        ],
-      })
+            },
+            {
+              role: 'user',
+              content: `Item: ${extracted.name}, Quantity: ${extracted.quantity}${extracted.type ? `, Type: ${extracted.type}` : ''}${extracted.brand ? `, Brand: ${extracted.brand}` : ''}`,
+            },
+          ],
+        })
 
-      const suggestion =
-        suggestionAI.choices[0].message.content ??
-        'Item added to your kitchen restock list.'
+        const suggestion =
+          suggestionAI.choices[0].message.content ??
+          'Item added to your kitchen restock list.'
 
-      // Confirmation message
-      const confirmationMessage = `✓ Added: ${extracted.name} (${extracted.quantity})${extracted.brand ? ` - ${extracted.brand}` : ''}${extracted.type ? ` [${extracted.type}]` : ''}\n\n${suggestion}\n\nAnything else you need for your kitchen?`
+        // Confirmation message
+        const confirmationMessage = `✓ Added: ${extracted.name} (${extracted.quantity})${extracted.brand ? ` - ${extracted.brand}` : ''}${extracted.type ? ` [${extracted.type}]` : ''}\n\n${suggestion}\n\nAnything else you need for your kitchen?`
+
+        session.conversationHistory.push({
+          role: 'assistant',
+          content: confirmationMessage,
+          timestamp: new Date(),
+        })
+        await session.save()
+
+        return sendResponse(res, {
+          statusCode: StatusCodes.OK,
+          success: true,
+          message: 'Item added successfully',
+          data: {
+            sessionId: session._id,
+            item: extracted,
+            response: confirmationMessage,
+            items: session.items,
+          },
+        })
+      }
+
+      // ========================================
+      // If AI gave a conversational response
+      // ========================================
+      const aiResponse =
+        choice.message.content ||
+        "I'm here to help with your kitchen restock. What items do you need?"
 
       session.conversationHistory.push({
         role: 'assistant',
-        content: confirmationMessage,
+        content: aiResponse,
         timestamp: new Date(),
       })
       await session.save()
@@ -173,40 +201,29 @@ Keep responses concise (2-3 sentences max).`,
       return sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
-        message: 'Item added successfully',
+        message: 'Response generated',
         data: {
           sessionId: session._id,
-          item: extracted,
-          response: confirmationMessage,
+          response: aiResponse,
           items: session.items,
         },
       })
+    } catch (error: any) {
+      if (
+        error?.status === 429 ||
+        error?.message?.includes('insufficient_quota') ||
+        error?.message?.includes('exceeded your current quota')
+      ) {
+        return sendResponse(res, {
+          statusCode: StatusCodes.TOO_MANY_REQUESTS,
+          success: false,
+          message:
+            'The AI kitchen assistant is currently offline due to technical limits (quota exceeded). Please try again later.',
+          data: null,
+        })
+      }
+      throw error
     }
-
-    // ========================================
-    // If AI gave a conversational response
-    // ========================================
-    const aiResponse =
-      choice.message.content ||
-      "I'm here to help with your kitchen restock. What items do you need?"
-
-    session.conversationHistory.push({
-      role: 'assistant',
-      content: aiResponse,
-      timestamp: new Date(),
-    })
-    await session.save()
-
-    return sendResponse(res, {
-      statusCode: StatusCodes.OK,
-      success: true,
-      message: 'Response generated',
-      data: {
-        sessionId: session._id,
-        response: aiResponse,
-        items: session.items,
-      },
-    })
   },
 )
 

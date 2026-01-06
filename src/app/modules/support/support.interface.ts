@@ -10,6 +10,7 @@ export interface ISupportFilterables {
 export interface ISupport {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
+  bookingId?: Types.ObjectId;
   subject?: string;
   message: string;
   status: SUPPORT_STATUS;

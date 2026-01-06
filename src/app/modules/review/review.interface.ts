@@ -3,10 +3,10 @@ import { IUser } from '../user/user.interface'
 
 export type IReview = {
   _id?: Types.ObjectId
-  service: Types.ObjectId
+  bookingId: Types.ObjectId | any
   title?: string
-  reviewer: Types.ObjectId | IUser
-  reviewee?: Types.ObjectId | IUser
+  reviewer: Types.ObjectId | IUser | any
+  reviewee?: Types.ObjectId | IUser | any
   rating: number
   review: string
   status: 'pending' | 'approved' | 'rejected'

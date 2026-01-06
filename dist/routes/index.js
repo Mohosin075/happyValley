@@ -19,6 +19,8 @@ const agreement_route_1 = require("../app/modules/agreement/agreement.route");
 const review_route_1 = require("../app/modules/review/review.route");
 const stats_route_1 = require("../app/modules/stats/stats.route");
 const invoice_route_1 = require("../app/modules/invoice/invoice.route");
+const message_routes_1 = require("../app/modules/message/message.routes");
+const chat_routes_1 = require("../app/modules/chat/chat.routes");
 const router = express_1.default.Router();
 const apiRoutes = [
     { path: '/user', route: user_route_1.UserRoutes },
@@ -36,6 +38,8 @@ const apiRoutes = [
     { path: '/review', route: review_route_1.ReviewRoutes },
     { path: '/stats', route: stats_route_1.StatsRoutes },
     { path: '/invoice', route: invoice_route_1.InvoiceRoutes },
+    { path: '/message', route: message_routes_1.MessageRoutes },
+    { path: '/chat', route: chat_routes_1.ChatRoutes },
 ];
 apiRoutes.forEach(route => {
     router.use(route.path, route.route);

@@ -27,6 +27,7 @@ const generateInvoices = async () => {
             },
         },
     ]);
+    console.log(aggregateResult);
     const results = [];
     for (const group of aggregateResult) {
         const userId = group._id;

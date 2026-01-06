@@ -463,19 +463,19 @@ const calculateAverageStaffRating = async (): Promise<number> => {
   // Group ratings by staff
   const staffRatings = new Map<string, { total: number; count: number }>()
 
-  reviews.forEach(review => {
-    const staffId = serviceToStaffMap.get(review.service.toString())
-    if (staffId) {
-      if (!staffRatings.has(staffId)) {
-        staffRatings.set(staffId, { total: 0, count: 0 })
-      }
-      const current = staffRatings.get(staffId)!
-      staffRatings.set(staffId, {
-        total: current.total + review.rating,
-        count: current.count + 1,
-      })
-    }
-  })
+  // reviews.forEach(review => {
+  //   const staffId = serviceToStaffMap.get(review.service.toString())
+  //   if (staffId) {
+  //     if (!staffRatings.has(staffId)) {
+  //       staffRatings.set(staffId, { total: 0, count: 0 })
+  //     }
+  //     const current = staffRatings.get(staffId)!
+  //     staffRatings.set(staffId, {
+  //       total: current.total + review.rating,
+  //       count: current.count + 1,
+  //     })
+  //   }
+  // })
 
   // Calculate overall average
   let totalRating = 0

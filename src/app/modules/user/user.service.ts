@@ -88,11 +88,11 @@ const createAdmin = async (): Promise<Partial<IUser> | null> => {
     logger.log('info', 'Admin account already exist, skipping creation.🦥')
     return isAdminExist
   }
-  const result = await User.create([admin])
+  const result = await User.create(admin)
   if (!result) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create admin')
   }
-  return result[0]
+  return result
 }
 
 const createStaff = async (

@@ -12,6 +12,7 @@ const config_1 = __importDefault(require("./config"));
 const logger_1 = require("./shared/logger");
 const socketHelper_1 = require("./helpers/socketHelper");
 const user_service_1 = require("./app/modules/user/user.service");
+const cron_1 = require("./cron");
 // import { redisClient } from './helpers/redis'
 // import { createAdapter } from "@socket.io/redis-adapter";
 // import { emailWorker, notificationWorker } from './helpers/bull-mq-worker'
@@ -39,6 +40,8 @@ async function main() {
         });
         //create admin user
         await user_service_1.UserServices.createAdmin();
+        // Initialize Cron Jobs
+        cron_1.cronJobs.initCronJobs();
         //bull mq notification worker!!!!!
         // notificationWorker
         // emailWorker

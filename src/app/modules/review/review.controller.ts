@@ -5,6 +5,7 @@ import sendResponse from '../../../shared/sendResponse'
 import { StatusCodes } from 'http-status-codes'
 import { paginationFields } from '../../../interfaces/pagination'
 import pick from '../../../shared/pick'
+import ApiError from '../../../errors/ApiError'
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
   const reviewData = req.body
@@ -32,9 +33,8 @@ const updateReview = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getAllReviews = catchAsync(async (req: Request, res: Response) => {
-  const type = req.params.type as 'reviewer' | 'reviewee'
   const paginationOptions = pick(req.query, paginationFields)
-  const result = await ReviewServices.getAllReviews(type, paginationOptions)
+  const result = await ReviewServices.getAllReviews(paginationOptions)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -68,10 +68,27 @@ const getSingleReview = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const updateReviewStatus = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const status = req.body.status
+  if (!status) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Status is required')
+  }
+  const result = await ReviewServices.updateReviewStatus(id, status)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Review updated successfully',
+    data: result,
+  })
+})
+
 export const ReviewController = {
   createReview,
   updateReview,
   getAllReviews,
   deleteReview,
   getSingleReview,
+  updateReviewStatus,
 }

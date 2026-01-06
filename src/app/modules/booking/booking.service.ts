@@ -76,10 +76,10 @@ const createBooking = async (
     console.log(isPremiumUser)
     if (isPremiumUser?.status === 'active') {
       payload.bookingFee = 0
-    }else{
+    } else {
       payload.bookingFee = 150
     }
-    
+
 
     const result = await Booking.create({ ...payload, user: user.authId })
     if (!result) {
@@ -98,6 +98,7 @@ const createBooking = async (
       )
     }
 
+    await result.populate('user')
     return result
   } catch (error: any) {
     if (error.code === 11000) {
@@ -331,6 +332,9 @@ const getBookingsByDate = async (date: string): Promise<IBooking[]> => {
       $gte: startOfDay,
       $lte: endOfDay,
     },
+  }).populate({
+    path: 'user',
+    select: '-password -__v -createdAt -updatedAt -authentication',
   })
 
   return bookings

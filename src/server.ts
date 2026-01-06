@@ -7,6 +7,7 @@ import config from './config'
 import { errorLogger, logger } from './shared/logger'
 import { socketHelper } from './helpers/socketHelper'
 import { UserServices } from './app/modules/user/user.service'
+import { cronJobs } from './cron'
 // import { redisClient } from './helpers/redis'
 // import { createAdapter } from "@socket.io/redis-adapter";
 // import { emailWorker, notificationWorker } from './helpers/bull-mq-worker'
@@ -43,13 +44,16 @@ async function main() {
     //create admin user
     await UserServices.createAdmin()
 
+    // Initialize Cron Jobs
+    cronJobs.initCronJobs()
+
     //bull mq notification worker!!!!!
     // notificationWorker
     // emailWorker
-    
+
     // const pubClient = redisClient
     // const subClient = pubClient.duplicate()
-    
+
 
     logger.info(colors.green('🍁 Redis connected successfully'))
 

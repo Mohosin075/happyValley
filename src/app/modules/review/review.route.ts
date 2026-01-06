@@ -18,6 +18,14 @@ router
     ReviewController.createReview,
   )
 
+router
+  .route('/:id/status')
+  .patch(
+    auth(...Object.values(USER_ROLES)),
+    // validateRequest(updateReviewSchema),
+    ReviewController.updateReviewStatus,
+  )
+
 // router.route('/:type')
 //   .get(auth(...roles), ReviewController.getAllReviews);
 

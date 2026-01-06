@@ -34,7 +34,15 @@ const getAllSupports = async (user, filterables, pagination) => {
             .find({ status: { $nin: [support_1.SUPPORT_STATUS.DELETED] } })
             .skip(skip)
             .limit(limit)
-            .sort({ [sortBy]: sortOrder }).populate('userId'),
+            .sort({ [sortBy]: sortOrder })
+            .populate([
+            { path: 'userId', select: 'name email profile' },
+            {
+                path: 'bookingId',
+                select: 'serviceType.title staff',
+                populate: { path: 'staff', select: 'name profile' },
+            },
+        ]),
         support_model_1.Support.countDocuments({ status: { $nin: [support_1.SUPPORT_STATUS.DELETED] } }),
     ]);
     return {

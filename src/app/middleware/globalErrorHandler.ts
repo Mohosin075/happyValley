@@ -43,6 +43,20 @@ const globalErrorHandler: ErrorRequestHandler = (
     errorMessages = error?.message
       ? [{ path: '', message: error?.message }]
       : []
+  } else if (
+    error?.statusCode === 429 ||
+    error?.message?.includes('insufficient_quota') ||
+    error?.message?.includes('exceeded your current quota')
+  ) {
+    statusCode = 429
+    message =
+      'The requested service is currently unavailable due to technical limits. Please try again later.'
+    errorMessages = [
+      {
+        path: '',
+        message: message,
+      },
+    ]
   } else if (error instanceof Error) {
     message = error?.message
     errorMessages = error?.message

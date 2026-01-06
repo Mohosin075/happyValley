@@ -87,9 +87,6 @@ const deleteBooking = (0, catchAsync_1.default)(async (req, res) => {
 const updateBookingStatus = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
-    if (!status) {
-        throw new Error('Status is required');
-    }
     const result = await booking_service_1.BookingServices.updateBookingStatus(id, status);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

@@ -79,8 +79,40 @@ const bookingSchema = new Schema<IBooking, BookingModel>(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   },
 )
+
+bookingSchema.virtual('googleMapsUrl').get(function () {
+  if (
+    this.location &&
+    this.location.coordinates &&
+    (this.location.coordinates[0] !== 0 || this.location.coordinates[1] !== 0)
+  ) {
+    // google maps url with coordinates
+    return `https://www.google.com/maps/dir/?api=1&destination=${this.location.coordinates[1]},${this.location.coordinates[0]}`
+  }
+
+  if (this.address) {
+    const { address, city, state, zipCode } = this.address
+    const fullAddress = `${address || ''}, ${city || ''}, ${state || ''}, ${zipCode || ''}`
+      .replace(/^, /, '')
+      .replace(/, $/, '')
+    if (fullAddress.trim()) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`
+    }
+  }
+
+  return null
+})
+
+bookingSchema.virtual('userPhoneUrl').get(function () {
+  if (this.user && (this.user as any).phone) {
+    return `tel:${(this.user as any).phone}`
+  }
+  return null
+})
 
 bookingSchema.index({ service: 1, status: 1, createdAt: -1 })
 bookingSchema.index({ date: 1 })
