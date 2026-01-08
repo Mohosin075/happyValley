@@ -9,6 +9,9 @@ import {
   sendMessageToGroceryBot,
   getPastOrders,
   reuseFromPastOrder,
+  getSingleGrocerySession,
+  addManualItems,
+  getActiveSession,
 } from './gorceryChat'
 import subscriptionGuard from '../../middleware/subscriptionGuard'
 
@@ -119,6 +122,9 @@ router
 router.post('/chat/send', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), sendMessageToGroceryBot)
 router.post('/chat/confirm', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), confirmGroceryOrder)
 router.get('/chat/past-orders', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), getPastOrders)
+router.get('/chat/active-session', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), getActiveSession)
+router.get('/chat/session/:sessionId', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), getSingleGrocerySession)
+router.post('/chat/items', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), addManualItems)
 router.post('/chat/reuse', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), reuseFromPastOrder)
 
 export const BookingRoutes = router

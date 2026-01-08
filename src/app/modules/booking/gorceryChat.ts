@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import OpenAI from 'openai'
-import { GroceryChat } from './booking.model'
+import { GroceryChat, Booking } from './booking.model'
+import { Service } from '../service/service.model'
 import { JwtPayload } from 'jsonwebtoken'
 import catchAsync from '../../../shared/catchAsync'
 import { itemExtractionSchema } from './booking.constants'
@@ -19,7 +20,17 @@ export const sendMessageToGroceryBot = catchAsync(
     const user = req.user as JwtPayload & { authId: string }
 
     // Find or create session
-    let session = await GroceryChat.findById(sessionId)
+    let session
+    if (sessionId) {
+      session = await GroceryChat.findById(sessionId)
+    } else {
+      // Best UX: Automatically find the latest 'draft' session for this user
+      session = await GroceryChat.findOne({
+        user: user.authId,
+        status: 'draft',
+      }).sort({ createdAt: -1 })
+    }
+
     if (!session) {
       session = await GroceryChat.create({
         user: user.authId,
@@ -110,8 +121,9 @@ export const sendMessageToGroceryBot = catchAsync(
 2. Confirm item details including type, brand, and quantity
 3. Provide kitchen-specific suggestions (storage tips, alternatives, freshness advice)
 4. NOT provide general grocery shopping advice - focus on kitchen operations
+5. **Handle multiple items at once** - if a user provides a list, extract all items.
 
-Extract items using function calls when users mention specific grocery items.`,
+Extract items using function calls when users mention one or more grocery items. If they mention multiple items, call the tool for each one.`,
           },
           ...conversationMessages,
         ],
@@ -123,21 +135,26 @@ Extract items using function calls when users mention specific grocery items.`,
       const toolCalls = choice.message.tool_calls
 
       // ========================================
-      // If AI extracted an item via function call
+      // If AI extracted items via function calls
       // ========================================
       if (choice.finish_reason === 'tool_calls' && toolCalls?.length) {
-        const firstToolCall = toolCalls[0] as any
-        const extracted = JSON.parse(firstToolCall.function.arguments)
+        const addedItems: any[] = []
 
-        // Save extracted item with all details
-        session.items.push({
-          name: extracted.name,
-          quantity: extracted.quantity,
-          type: extracted.type || undefined,
-          brand: extracted.brand || undefined,
-        })
+        for (const toolCall of toolCalls) {
+          const extracted = JSON.parse((toolCall as any).function.arguments)
+          // Save extracted item with all details
+          const newItem = {
+            name: extracted.name,
+            quantity: extracted.quantity,
+            type: extracted.type || undefined,
+            brand: extracted.brand || undefined,
+          }
+          session.items.push(newItem)
+          addedItems.push(newItem)
+        }
 
-        // Generate kitchen-specific suggestion
+        // Generate kitchen-specific suggestion for the first item (to keep response concise)
+        const firstItem = addedItems[0]
         const suggestionAI = await client.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [
@@ -152,17 +169,24 @@ Keep responses concise (2-3 sentences max).`,
             },
             {
               role: 'user',
-              content: `Item: ${extracted.name}, Quantity: ${extracted.quantity}${extracted.type ? `, Type: ${extracted.type}` : ''}${extracted.brand ? `, Brand: ${extracted.brand}` : ''}`,
+              content: `Item: ${firstItem.name}, Quantity: ${firstItem.quantity}${firstItem.type ? `, Type: ${firstItem.type}` : ''}${firstItem.brand ? `, Brand: ${firstItem.brand}` : ''}`,
             },
           ],
         })
 
         const suggestion =
           suggestionAI.choices[0].message.content ??
-          'Item added to your kitchen restock list.'
+          'Items added to your kitchen restock list.'
 
         // Confirmation message
-        const confirmationMessage = `✓ Added: ${extracted.name} (${extracted.quantity})${extracted.brand ? ` - ${extracted.brand}` : ''}${extracted.type ? ` [${extracted.type}]` : ''}\n\n${suggestion}\n\nAnything else you need for your kitchen?`
+        const itemsListStr = addedItems
+          .map(
+            item =>
+              `✓ Added: ${item.name} (${item.quantity})${item.brand ? ` - ${item.brand}` : ''}${item.type ? ` [${item.type}]` : ''}`,
+          )
+          .join('\n')
+
+        const confirmationMessage = `${itemsListStr}\n\n${suggestion}\n\nAnything else you need for your kitchen?`
 
         session.conversationHistory.push({
           role: 'assistant',
@@ -174,10 +198,10 @@ Keep responses concise (2-3 sentences max).`,
         return sendResponse(res, {
           statusCode: StatusCodes.OK,
           success: true,
-          message: 'Item added successfully',
+          message: `${addedItems.length} item(s) added successfully`,
           data: {
             sessionId: session._id,
-            item: extracted,
+            addedItems,
             response: confirmationMessage,
             items: session.items,
           },
@@ -256,6 +280,47 @@ export const confirmGroceryOrder = catchAsync(
     session.status = 'confirmed'
     await session.save()
 
+    // ---------------------------------------------------------
+    // INTEGRATION: Create a formal Booking record
+    // ---------------------------------------------------------
+    try {
+      // 1. Find the "Grocery Restock" service (or create it if it doesn't exist)
+      let groceryService = await Service.findOne({ name: 'Grocery Restock' })
+
+      if (!groceryService) {
+        // Fallback: search for any service related to kitchen/grocery
+        groceryService = await Service.findOne({
+          name: { $regex: /grocery|restock|kitchen/i },
+        })
+      }
+
+      if (groceryService) {
+        // 2. Prep service details from grocery items
+        const serviceDetails = session.items.map(item => ({
+          name: item.name,
+          value: `${item.quantity}${item.brand ? ` (${item.brand})` : ''}${item.type ? ` [${item.type}]` : ''}`,
+        }))
+
+        // 3. Create the booking
+        await Booking.create({
+          user: session.user,
+          service: groceryService._id,
+          date: new Date(),
+          status: 'confirmed',
+          price: 0, // AI grocery booking is usually free or handled separately
+          serviceType: {
+            title: 'AI Grocery Restock',
+            description: `Automated restock list for ${session.items.length} items.`,
+          },
+          serviceDetails,
+          notes: `Session ID: ${session._id}`,
+        })
+      }
+    } catch (bookingError) {
+      console.error('Failed to create formal booking for grocery order:', bookingError)
+      // We don't throw here to avoid failing the whole request since session is already marked confirmed
+    }
+
     // Generate final summary
     const itemSummary = session.items
       .map(
@@ -264,7 +329,7 @@ export const confirmGroceryOrder = catchAsync(
       )
       .join('\n')
 
-    const confirmationMessage = `✅ Your kitchen restock order has been confirmed!\n\nItems:\n${itemSummary}\n\nTotal items: ${session.items.length}\n\nYour order will be fulfilled using our chosen store. No budget or receipt requirements needed.`
+    const confirmationMessage = `✅ Your kitchen restock order has been confirmed and a booking record has been created!\n\nItems:\n${itemSummary}\n\nTotal items: ${session.items.length}\n\nYour order will be fulfilled using our chosen store. No budget or receipt requirements needed.`
 
     session.conversationHistory.push({
       role: 'assistant',
@@ -352,6 +417,106 @@ export const reuseFromPastOrder = catchAsync(
         items: session.items,
         response: confirmationMessage,
       },
+    })
+  },
+)
+
+// ====================================
+// Get Single Grocery Session details
+// ====================================
+export const getSingleGrocerySession = catchAsync(
+  async (req: Request, res: Response) => {
+    const { sessionId } = req.params
+
+    const session = await GroceryChat.findById(sessionId)
+    if (!session) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.NOT_FOUND,
+        success: false,
+        message: 'Session not found',
+        data: null,
+      })
+    }
+
+    return sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Session retrieved successfully',
+      data: session,
+    })
+  },
+)
+
+// ====================================
+// Add Manual Items (No AI extraction)
+// ====================================
+export const addManualItems = catchAsync(
+  async (req: Request, res: Response) => {
+    const { sessionId, items } = req.body // items: array of { name, quantity, type?, brand? }
+
+    const session = await GroceryChat.findById(sessionId)
+    if (!session) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.NOT_FOUND,
+        success: false,
+        message: 'Session not found',
+        data: null,
+      })
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        success: false,
+        message: 'Please provide an array of items',
+        data: null,
+      })
+    }
+
+    // Add items to session
+    session.items.push(...items)
+
+    const confirmationMessage = `✓ Manually added ${items.length} items to your list.`
+
+    session.conversationHistory.push({
+      role: 'assistant',
+      content: confirmationMessage,
+      timestamp: new Date(),
+    })
+    await session.save()
+
+    return sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Items added successfully',
+      data: {
+        sessionId: session._id,
+        items: session.items,
+        response: confirmationMessage,
+      },
+    })
+  },
+)
+
+// ====================================
+// Get Active Draft Session
+// ====================================
+export const getActiveSession = catchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user as JwtPayload & { authId: string }
+
+    const session = await GroceryChat.findOne({
+      user: user.authId,
+      status: 'draft',
+    }).sort({ createdAt: -1 })
+
+    return sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: session
+        ? 'Active session retrieved'
+        : 'No active session found',
+      data: session || null,
     })
   },
 )
