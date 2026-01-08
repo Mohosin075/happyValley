@@ -55,3 +55,17 @@ export const itemExtractionSchema = {
   },
 }
 
+export const itemRemovalSchema = {
+  name: 'remove_grocery_item',
+  description: 'Remove a grocery item from the kitchen restock list',
+  parameters: {
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+        description: 'Name of the grocery item to remove (e.g., "tomatoes")',
+      },
+    },
+    required: ['name'],
+  },
+}

@@ -4,7 +4,7 @@ import { GroceryChat, Booking } from './booking.model'
 import { Service } from '../service/service.model'
 import { JwtPayload } from 'jsonwebtoken'
 import catchAsync from '../../../shared/catchAsync'
-import { itemExtractionSchema } from './booking.constants'
+import { itemExtractionSchema, itemRemovalSchema } from './booking.constants'
 import sendResponse from '../../../shared/sendResponse'
 import { StatusCodes } from 'http-status-codes'
 import config from '../../../config'
@@ -122,12 +122,16 @@ export const sendMessageToGroceryBot = catchAsync(
 3. Provide kitchen-specific suggestions (storage tips, alternatives, freshness advice)
 4. NOT provide general grocery shopping advice - focus on kitchen operations
 5. **Handle multiple items at once** - if a user provides a list, extract all items.
+6. **Handle item removals** - if a user wants to remove an item, call the removal tool.
 
-Extract items using function calls when users mention one or more grocery items. If they mention multiple items, call the tool for each one.`,
+Extract items using function calls when users mention adding or removing grocery items. If they mention multiple additions or removals, call the tool for each one.`,
           },
           ...conversationMessages,
         ],
-        tools: [{ type: 'function', function: itemExtractionSchema }],
+        tools: [
+          { type: 'function', function: itemExtractionSchema },
+          { type: 'function', function: itemRemovalSchema },
+        ],
         tool_choice: 'auto',
       })
 
@@ -139,54 +143,77 @@ Extract items using function calls when users mention one or more grocery items.
       // ========================================
       if (choice.finish_reason === 'tool_calls' && toolCalls?.length) {
         const addedItems: any[] = []
+        const removedItems: string[] = []
 
         for (const toolCall of toolCalls) {
-          const extracted = JSON.parse((toolCall as any).function.arguments)
-          // Save extracted item with all details
-          const newItem = {
-            name: extracted.name,
-            quantity: extracted.quantity,
-            type: extracted.type || undefined,
-            brand: extracted.brand || undefined,
+          const toolCallAny = toolCall as any
+          const extracted = JSON.parse(toolCallAny.function.arguments)
+
+          if (toolCallAny.function.name === 'extract_grocery_item') {
+            // Save extracted item with all details
+            const newItem = {
+              name: extracted.name,
+              quantity: extracted.quantity,
+              type: extracted.type || undefined,
+              brand: extracted.brand || undefined,
+            }
+            session.items.push(newItem)
+            addedItems.push(newItem)
+          } else if (toolCallAny.function.name === 'remove_grocery_item') {
+            const initialCount = session.items.length
+            session.items = session.items.filter(
+              item => item.name.toLowerCase() !== extracted.name.toLowerCase(),
+            )
+            if (session.items.length < initialCount) {
+              removedItems.push(extracted.name)
+            }
           }
-          session.items.push(newItem)
-          addedItems.push(newItem)
         }
 
-        // Generate kitchen-specific suggestion for the first item (to keep response concise)
-        const firstItem = addedItems[0]
-        const suggestionAI = await client.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a kitchen management expert. Provide brief, practical advice about the grocery item for kitchen operations. Focus on:
+        let confirmationMessage = ''
+
+        if (addedItems.length > 0) {
+          const itemsListStr = addedItems
+            .map(
+              item =>
+                `✓ Added: ${item.name} (${item.quantity})${item.brand ? ` - ${item.brand}` : ''}${item.type ? ` [${item.type}]` : ''}`,
+            )
+            .join('\n')
+          confirmationMessage += itemsListStr + '\n\n'
+        }
+
+        if (removedItems.length > 0) {
+          confirmationMessage += `󰆴 Removed: ${removedItems.join(', ')}\n\n`
+        }
+
+        // Generate kitchen-specific suggestion for the first added item
+        let suggestion = 'Your grocery list has been updated.'
+        if (addedItems.length > 0) {
+          const firstItem = addedItems[0]
+          const suggestionAI = await client.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `You are a kitchen management expert. Provide brief, practical advice about the grocery item for kitchen operations. Focus on:
 - Storage recommendations
 - Freshness indicators
 - Kitchen-specific usage tips
 - Alternative options if unavailable
 Keep responses concise (2-3 sentences max).`,
-            },
-            {
-              role: 'user',
-              content: `Item: ${firstItem.name}, Quantity: ${firstItem.quantity}${firstItem.type ? `, Type: ${firstItem.type}` : ''}${firstItem.brand ? `, Brand: ${firstItem.brand}` : ''}`,
-            },
-          ],
-        })
+              },
+              {
+                role: 'user',
+                content: `Item: ${firstItem.name}, Quantity: ${firstItem.quantity}${firstItem.type ? `, Type: ${firstItem.type}` : ''}${firstItem.brand ? `, Brand: ${firstItem.brand}` : ''}`,
+              },
+            ],
+          })
+          suggestion =
+            suggestionAI.choices[0].message.content ??
+            'Items updated in your kitchen restock list.'
+        }
 
-        const suggestion =
-          suggestionAI.choices[0].message.content ??
-          'Items added to your kitchen restock list.'
-
-        // Confirmation message
-        const itemsListStr = addedItems
-          .map(
-            item =>
-              `✓ Added: ${item.name} (${item.quantity})${item.brand ? ` - ${item.brand}` : ''}${item.type ? ` [${item.type}]` : ''}`,
-          )
-          .join('\n')
-
-        const confirmationMessage = `${itemsListStr}\n\n${suggestion}\n\nAnything else you need for your kitchen?`
+        confirmationMessage += `${suggestion}\n\nAnything else you need for your kitchen?`
 
         session.conversationHistory.push({
           role: 'assistant',
@@ -198,10 +225,11 @@ Keep responses concise (2-3 sentences max).`,
         return sendResponse(res, {
           statusCode: StatusCodes.OK,
           success: true,
-          message: `${addedItems.length} item(s) added successfully`,
+          message: 'List updated successfully',
           data: {
             sessionId: session._id,
             addedItems,
+            removedItems,
             response: confirmationMessage,
             items: session.items,
           },
@@ -517,6 +545,58 @@ export const getActiveSession = catchAsync(
         ? 'Active session retrieved'
         : 'No active session found',
       data: session || null,
+    })
+  },
+)
+
+// ====================================
+// Remove single item from session
+// ====================================
+export const removeItemFromGrocerySession = catchAsync(
+  async (req: Request, res: Response) => {
+    const { sessionId, itemId } = req.body
+    const user = req.user as JwtPayload & { authId: string }
+
+    let session
+    if (sessionId) {
+      session = await GroceryChat.findById(sessionId)
+    } else {
+      session = await GroceryChat.findOne({
+        user: user.authId,
+        status: 'draft',
+      }).sort({ createdAt: -1 })
+    }
+
+    if (!session) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.NOT_FOUND,
+        success: false,
+        message: 'Session not found',
+        data: null,
+      })
+    }
+
+    const initialLength = session.items.length
+    session.items = session.items.filter(
+      (item: any) => item._id.toString() !== itemId,
+    )
+
+    if (session.items.length === initialLength) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.NOT_FOUND,
+        success: false,
+        message: 'Item not found in this session',
+        data: null,
+      })
+    }
+
+    await session.save()
+
+    return sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Item removed successfully',
+      data: session,
     })
   },
 )
