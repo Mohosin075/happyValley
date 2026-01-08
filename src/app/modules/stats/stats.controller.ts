@@ -185,6 +185,24 @@ const getProviderSummaryStats = async (req: Request, res: Response) => {
   }
 }
 
+const getRecentServices = async (req: Request, res: Response) => {
+  try {
+    const data = await StatsServices.getRecentServices()
+
+    res.status(200).json({
+      success: true,
+      message: 'Recent services fetched successfully',
+      data,
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching recent services',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+}
+
 export const StatsController = {
   getDashboard,
   getServiceRequests,
@@ -196,4 +214,5 @@ export const StatsController = {
   getReviewSupportStatsSimple,
   getProviderDashboard,
   getProviderSummaryStats,
+  getRecentServices,
 }

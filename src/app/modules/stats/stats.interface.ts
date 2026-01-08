@@ -114,3 +114,21 @@ export interface IProviderCompletionRate {
   completedBookings: number
   completionRate: number
 }
+
+export interface IRecentService {
+  _id: string
+  user: {
+    _id: string
+    name: string
+    profile?: string
+  }
+  staff: {
+    _id: string
+    name: string
+    profile?: string
+  }
+  service: string // Service name
+  status: string
+  date: Date
+  price: number
+}
