@@ -34,6 +34,7 @@ export const ServiceValidations = {
       description: z.string().optional(),
       servicesProvided: z.array(z.string()).optional(),
       occasions: z.array(z.string()).optional(),
+      image: z.string().optional(),
       staff: z.array(z.string().regex(/^[0-9a-fA-F]{24}$/)).optional(),
       serviceType: z
         .array(

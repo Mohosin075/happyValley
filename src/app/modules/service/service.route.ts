@@ -35,7 +35,7 @@ router.post(
 router.patch(
   '/:id',
   auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
-
+  fileAndBodyProcessorUsingDiskStorage(),
   validateRequest(ServiceValidations.update),
   ServiceController.updateService,
 )
