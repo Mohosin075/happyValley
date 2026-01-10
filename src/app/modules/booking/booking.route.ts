@@ -50,6 +50,11 @@ router
     BookingController.myServices,
   )
 
+// Track upcoming bookings route: /bookings/my-upcoming
+router
+  .route('/my-upcoming')
+  .get(auth(USER_ROLES.STAFF), BookingController.getUpcomingBookings)
+
 // Scheduled bookings route: /bookings/scheduled
 router
   .route('/scheduled')

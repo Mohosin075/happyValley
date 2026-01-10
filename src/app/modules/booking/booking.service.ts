@@ -505,6 +505,30 @@ const updateBookingFees = async (
   return result
 }
 
+const getUpcomingBookings = async (staffId: string): Promise<IBooking[]> => {
+  const now = new Date()
+  
+  // Local midnight today
+  const startOfToday = new Date(now)
+  startOfToday.setHours(0, 0, 0, 0)
+
+  console.log({ startOfToday, staffId })
+
+  const result = await Booking.find({
+    staff: staffId,
+    date: { $gte: startOfToday },  // everything today and in the future
+    status: { $nin: ['cancelled', 'draft'] },
+  })
+    .sort({ date: 1 })
+    .populate({
+      path: 'user',
+      select: '-password -__v -createdAt -updatedAt -authentication',
+    })
+
+  return result
+}
+
+
 export const BookingServices = {
   createBooking,
   getAllBookings,
@@ -517,4 +541,5 @@ export const BookingServices = {
   updatePrice,
   updateBookingFees,
   getWeeklyBookingsByUser,
+  getUpcomingBookings,
 }
