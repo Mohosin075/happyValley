@@ -952,6 +952,43 @@ const getRecentServices = async (): Promise<IRecentService[]> => {
   }))
 }
 
+const getStaffRecentServices = async (
+  staffId: string,
+  status?: string,
+): Promise<IRecentService[]> => {
+  const query: any = { staff: staffId }
+
+  if (status) {
+    query.status = status
+  } else {
+    query.status = { $nin: ['cancelled', 'draft'] }
+  }
+
+  const bookings = await Booking.find(query)
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .populate('user', 'name profile')
+    .select('user serviceType.title status date price')
+
+  return bookings.map(booking => ({
+    _id: booking._id.toString(),
+    user: {
+      _id: (booking.user as any)?._id,
+      name: (booking.user as any)?.name || 'Unknown User',
+      profile: (booking.user as any)?.profile,
+    },
+    staff: {
+      _id: staffId,
+      name: '', // We don't need staff name here as it's for the logged-in staff
+    },
+    service: booking.serviceType?.title || 'Unknown Service',
+    status: booking.status as string,
+    date: booking.date,
+    price: booking.price,
+  }))
+}
+
+
 export const StatsServices = {
   getDashboardData,
   getServiceRequests,
@@ -964,4 +1001,5 @@ export const StatsServices = {
   getProviderDashboard,
   getProviderSummaryStats,
   getRecentServices,
+  getStaffRecentServices,
 }

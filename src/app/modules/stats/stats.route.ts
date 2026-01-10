@@ -81,4 +81,11 @@ router.get(
   StatsController.getProviderSummaryStats,
 )
 
+// GET /api/stats/staff/recent-services - `Staff recent services`
+router.get(
+  '/provider/recent-services',
+  auth(USER_ROLES.STAFF),
+  StatsController.getStaffRecentServices,
+)
+
 export const StatsRoutes = router

@@ -203,6 +203,27 @@ const getRecentServices = async (req: Request, res: Response) => {
   }
 }
 
+const getStaffRecentServices = async (req: Request, res: Response) => {
+  try {
+    const providerId = (req.user as JwtPayload).authId
+    const status = req.query.status as string
+    const data = await StatsServices.getStaffRecentServices(providerId, status)
+
+    res.status(200).json({
+      success: true,
+      message: 'Staff recent services fetched successfully',
+      data,
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching staff recent services',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+}
+
+
 export const StatsController = {
   getDashboard,
   getServiceRequests,
@@ -215,4 +236,5 @@ export const StatsController = {
   getProviderDashboard,
   getProviderSummaryStats,
   getRecentServices,
+  getStaffRecentServices,
 }
