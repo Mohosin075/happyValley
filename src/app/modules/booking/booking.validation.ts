@@ -106,4 +106,24 @@ export const BookingValidations = {
       serviceCharge: z.number().nonnegative().optional(),
     }),
   }),
+
+  groceryChat: z.object({
+    body: z.object({
+      sessionId: objectId.optional(),
+      message: z.string().min(1, 'Message is required'),
+    }),
+  }),
+
+  confirmGroceryChat: z.object({
+    body: z.object({
+      sessionId: objectId,
+    }),
+  }),
+
+  reuseGroceryChat: z.object({
+    body: z.object({
+      sessionId: objectId,
+      pastOrderId: objectId,
+    }),
+  }),
 }

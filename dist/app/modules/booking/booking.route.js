@@ -22,6 +22,10 @@ router
 router
     .route('/my-services')
     .get((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.STAFF), subscriptionGuard_1.default, booking_controller_1.BookingController.myServices);
+// Track upcoming bookings route: /bookings/my-upcoming
+router
+    .route('/my-upcoming')
+    .get((0, auth_1.default)(user_1.USER_ROLES.STAFF), booking_controller_1.BookingController.getUpcomingBookings);
 // Scheduled bookings route: /bookings/scheduled
 router
     .route('/scheduled')
@@ -51,5 +55,9 @@ router
 router.post('/chat/send', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.sendMessageToGroceryBot);
 router.post('/chat/confirm', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.confirmGroceryOrder);
 router.get('/chat/past-orders', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.getPastOrders);
+router.get('/chat/active-session', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.getActiveSession);
+router.get('/chat/session/:sessionId', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.getSingleGrocerySession);
+router.post('/chat/items', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.addManualItems);
+router.delete('/chat/items', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.removeItemFromGrocerySession);
 router.post('/chat/reuse', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.reuseFromPastOrder);
 exports.BookingRoutes = router;

@@ -23,10 +23,14 @@ router.get('/admin/staff-stats', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, us
 router.get('/admin/service-stats', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), stats_controller_1.StatsController.getServiceStats);
 // GET /api/stats/payment-stats - Payment stats
 router.get('/admin/payment-stats', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), stats_controller_1.StatsController.getPaymentStatsClean);
+// GET /api/stats/recent-services - Recent services for admin dashboard
+router.get('/admin/recent-services', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), stats_controller_1.StatsController.getRecentServices);
 // GET /api/stats/review-support-stats - Review and support stats
 router.get('/admin/review-support-stats', stats_controller_1.StatsController.getReviewSupportStatsSimple);
 // GET /api/stats/provider-dashboard - Provider dashboard data
 router.get('/provider/dashboard', (0, auth_1.default)(user_1.USER_ROLES.STAFF), stats_controller_1.StatsController.getProviderDashboard);
 // GET /api/stats/provider-summary - Provider summary stats
 router.get('/provider/my-summary', (0, auth_1.default)(user_1.USER_ROLES.STAFF), stats_controller_1.StatsController.getProviderSummaryStats);
+// GET /api/stats/staff/recent-services - `Staff recent services`
+router.get('/provider/recent-services', (0, auth_1.default)(user_1.USER_ROLES.STAFF), stats_controller_1.StatsController.getStaffRecentServices);
 exports.StatsRoutes = router;

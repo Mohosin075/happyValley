@@ -127,6 +127,16 @@ const updateBookingFees = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getUpcomingBookings = (0, catchAsync_1.default)(async (req, res) => {
+    const staffId = req.user.authId;
+    const result = await booking_service_1.BookingServices.getUpcomingBookings(staffId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Upcoming bookings retrieved successfully',
+        data: result,
+    });
+});
 exports.BookingController = {
     createBooking,
     updateBooking,
@@ -139,4 +149,5 @@ exports.BookingController = {
     updatePrice,
     updateBookingFees,
     getWeeklyBookingsByUser,
+    getUpcomingBookings,
 };

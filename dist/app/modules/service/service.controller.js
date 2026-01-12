@@ -28,7 +28,11 @@ const createService = (0, catchAsync_1.default)(async (req, res) => {
 });
 const updateService = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
-    const serviceData = req.body;
+    let serviceData = req.body;
+    if (req.body.images && req.body.images.length > 0) {
+        serviceData = { ...req.body, image: req.body.images[0] };
+    }
+    console.log({ serviceData });
     const result = await service_service_1.ServiceServices.updateService(id, serviceData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

@@ -29,7 +29,13 @@ const createService = catchAsync(async (req: Request, res: Response) => {
 
 const updateService = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const serviceData = req.body
+
+  let serviceData = req.body
+  if (req.body.images && req.body.images.length > 0) {
+    serviceData = { ...req.body, image: req.body.images[0] }
+  }
+
+  console.log({serviceData})
 
   const result = await ServiceServices.updateService(id, serviceData)
 

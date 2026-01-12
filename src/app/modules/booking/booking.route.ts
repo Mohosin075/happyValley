@@ -9,6 +9,10 @@ import {
   sendMessageToGroceryBot,
   getPastOrders,
   reuseFromPastOrder,
+  getSingleGrocerySession,
+  addManualItems,
+  getActiveSession,
+  removeItemFromGrocerySession,
 } from './gorceryChat'
 import subscriptionGuard from '../../middleware/subscriptionGuard'
 
@@ -45,6 +49,11 @@ router
     subscriptionGuard,
     BookingController.myServices,
   )
+
+// Track upcoming bookings route: /bookings/my-upcoming
+router
+  .route('/my-upcoming')
+  .get(auth(USER_ROLES.STAFF), BookingController.getUpcomingBookings)
 
 // Scheduled bookings route: /bookings/scheduled
 router
@@ -119,6 +128,10 @@ router
 router.post('/chat/send', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), sendMessageToGroceryBot)
 router.post('/chat/confirm', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), confirmGroceryOrder)
 router.get('/chat/past-orders', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), getPastOrders)
+router.get('/chat/active-session', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), getActiveSession)
+router.get('/chat/session/:sessionId', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), getSingleGrocerySession)
+router.post('/chat/items', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), addManualItems)
+router.delete('/chat/items', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), removeItemFromGrocerySession)
 router.post('/chat/reuse', auth(USER_ROLES.CLIENT, USER_ROLES.ADMIN), reuseFromPastOrder)
 
 export const BookingRoutes = router

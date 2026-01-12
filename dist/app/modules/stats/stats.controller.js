@@ -176,6 +176,42 @@ const getProviderSummaryStats = async (req, res) => {
         });
     }
 };
+const getRecentServices = async (req, res) => {
+    try {
+        const data = await stats_service_1.StatsServices.getRecentServices();
+        res.status(200).json({
+            success: true,
+            message: 'Recent services fetched successfully',
+            data,
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching recent services',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+};
+const getStaffRecentServices = async (req, res) => {
+    try {
+        const providerId = req.user.authId;
+        const status = req.query.status;
+        const data = await stats_service_1.StatsServices.getStaffRecentServices(providerId, status);
+        res.status(200).json({
+            success: true,
+            message: 'Staff recent services fetched successfully',
+            data,
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching staff recent services',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+};
 exports.StatsController = {
     getDashboard,
     getServiceRequests,
@@ -187,4 +223,6 @@ exports.StatsController = {
     getReviewSupportStatsSimple,
     getProviderDashboard,
     getProviderSummaryStats,
+    getRecentServices,
+    getStaffRecentServices,
 };

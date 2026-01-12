@@ -95,4 +95,21 @@ exports.BookingValidations = {
             serviceCharge: zod_1.z.number().nonnegative().optional(),
         }),
     }),
+    groceryChat: zod_1.z.object({
+        body: zod_1.z.object({
+            sessionId: objectId.optional(),
+            message: zod_1.z.string().min(1, 'Message is required'),
+        }),
+    }),
+    confirmGroceryChat: zod_1.z.object({
+        body: zod_1.z.object({
+            sessionId: objectId,
+        }),
+    }),
+    reuseGroceryChat: zod_1.z.object({
+        body: zod_1.z.object({
+            sessionId: objectId,
+            pastOrderId: objectId,
+        }),
+    }),
 };

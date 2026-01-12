@@ -54,6 +54,13 @@ router.get(
   StatsController.getPaymentStatsClean,
 )
 
+// GET /api/stats/recent-services - Recent services for admin dashboard
+router.get(
+  '/admin/recent-services',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  StatsController.getRecentServices,
+)
+
 // GET /api/stats/review-support-stats - Review and support stats
 router.get(
   '/admin/review-support-stats',
@@ -72,6 +79,13 @@ router.get(
   '/provider/my-summary',
   auth(USER_ROLES.STAFF),
   StatsController.getProviderSummaryStats,
+)
+
+// GET /api/stats/staff/recent-services - `Staff recent services`
+router.get(
+  '/provider/recent-services',
+  auth(USER_ROLES.STAFF),
+  StatsController.getStaffRecentServices,
 )
 
 export const StatsRoutes = router

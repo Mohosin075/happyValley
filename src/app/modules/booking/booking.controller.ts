@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import { JwtPayload } from 'jsonwebtoken'
 import { BookingServices } from './booking.service'
 import catchAsync from '../../../shared/catchAsync'
 import sendResponse from '../../../shared/sendResponse'
@@ -163,6 +164,18 @@ const updateBookingFees = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getUpcomingBookings = catchAsync(async (req: Request, res: Response) => {
+  const staffId = (req.user as JwtPayload).authId
+  const result = await BookingServices.getUpcomingBookings(staffId)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Upcoming bookings retrieved successfully',
+    data: result,
+  })
+})
+
 export const BookingController = {
   createBooking,
   updateBooking,
@@ -175,4 +188,5 @@ export const BookingController = {
   updatePrice,
   updateBookingFees,
   getWeeklyBookingsByUser,
+  getUpcomingBookings,
 }

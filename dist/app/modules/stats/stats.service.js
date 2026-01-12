@@ -736,6 +736,74 @@ const getProviderSummaryStats = async (providerId) => {
         earnings: ((_a = earnings[0]) === null || _a === void 0 ? void 0 : _a.total) || 0,
     };
 };
+const getRecentServices = async () => {
+    const bookings = await booking_model_1.Booking.find({
+        status: { $nin: ['cancelled', 'draft'] },
+    })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate('user', 'name profile')
+        .populate('staff', 'name profile')
+        .select('user staff serviceType.title status date price');
+    return bookings.map(booking => {
+        var _a, _b, _c, _d;
+        return ({
+            _id: booking._id.toString(),
+            user: {
+                _id: (_a = booking.user) === null || _a === void 0 ? void 0 : _a._id,
+                name: ((_b = booking.user) === null || _b === void 0 ? void 0 : _b.name) || 'Unknown User',
+                profile: (_c = booking.user) === null || _c === void 0 ? void 0 : _c.profile,
+            },
+            staff: booking.staff
+                ? {
+                    _id: booking.staff._id,
+                    name: booking.staff.name,
+                    profile: booking.staff.profile,
+                }
+                : {
+                    _id: '',
+                    name: 'Unassigned',
+                },
+            service: ((_d = booking.serviceType) === null || _d === void 0 ? void 0 : _d.title) || 'Unknown Service',
+            status: booking.status,
+            date: booking.date,
+            price: booking.price,
+        });
+    });
+};
+const getStaffRecentServices = async (staffId, status) => {
+    const query = { staff: staffId };
+    if (status) {
+        query.status = status;
+    }
+    else {
+        query.status = { $nin: ['cancelled', 'draft'] };
+    }
+    const bookings = await booking_model_1.Booking.find(query)
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate('user', 'name profile')
+        .select('user serviceType.title status date price');
+    return bookings.map(booking => {
+        var _a, _b, _c, _d;
+        return ({
+            _id: booking._id.toString(),
+            user: {
+                _id: (_a = booking.user) === null || _a === void 0 ? void 0 : _a._id,
+                name: ((_b = booking.user) === null || _b === void 0 ? void 0 : _b.name) || 'Unknown User',
+                profile: (_c = booking.user) === null || _c === void 0 ? void 0 : _c.profile,
+            },
+            staff: {
+                _id: staffId,
+                name: '', // We don't need staff name here as it's for the logged-in staff
+            },
+            service: ((_d = booking.serviceType) === null || _d === void 0 ? void 0 : _d.title) || 'Unknown Service',
+            status: booking.status,
+            date: booking.date,
+            price: booking.price,
+        });
+    });
+};
 exports.StatsServices = {
     getDashboardData,
     getServiceRequests,
@@ -747,4 +815,6 @@ exports.StatsServices = {
     getReviewSupportStatsSimple,
     getProviderDashboard,
     getProviderSummaryStats,
+    getRecentServices,
+    getStaffRecentServices,
 };

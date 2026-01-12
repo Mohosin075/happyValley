@@ -8,6 +8,7 @@ import { User } from '../user/user.model'
 import {
   IPaymentStats,
   IProviderDashboard,
+  IRecentService,
   IServiceStats,
   IStaffStats,
 } from './stats.interface'
@@ -916,6 +917,78 @@ const getProviderSummaryStats = async (
   }
 }
 
+
+const getRecentServices = async (): Promise<IRecentService[]> => {
+  const bookings = await Booking.find({
+    status: { $nin: ['cancelled', 'draft'] },
+  })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .populate('user', 'name profile')
+    .populate('staff', 'name profile')
+    .select('user staff serviceType.title status date price')
+
+  return bookings.map(booking => ({
+    _id: booking._id.toString(),
+    user: {
+      _id: (booking.user as any)?._id,
+      name: (booking.user as any)?.name || 'Unknown User',
+      profile: (booking.user as any)?.profile,
+    },
+    staff: booking.staff
+      ? {
+        _id: (booking.staff as any)._id,
+        name: (booking.staff as any).name,
+        profile: (booking.staff as any).profile,
+      }
+      : {
+        _id: '',
+        name: 'Unassigned',
+      },
+    service: booking.serviceType?.title || 'Unknown Service',
+    status: booking.status as string,
+    date: booking.date,
+    price: booking.price,
+  }))
+}
+
+const getStaffRecentServices = async (
+  staffId: string,
+  status?: string,
+): Promise<IRecentService[]> => {
+  const query: any = { staff: staffId }
+
+  if (status) {
+    query.status = status
+  } else {
+    query.status = { $nin: ['cancelled', 'draft'] }
+  }
+
+  const bookings = await Booking.find(query)
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .populate('user', 'name profile')
+    .select('user serviceType.title status date price')
+
+  return bookings.map(booking => ({
+    _id: booking._id.toString(),
+    user: {
+      _id: (booking.user as any)?._id,
+      name: (booking.user as any)?.name || 'Unknown User',
+      profile: (booking.user as any)?.profile,
+    },
+    staff: {
+      _id: staffId,
+      name: '', // We don't need staff name here as it's for the logged-in staff
+    },
+    service: booking.serviceType?.title || 'Unknown Service',
+    status: booking.status as string,
+    date: booking.date,
+    price: booking.price,
+  }))
+}
+
+
 export const StatsServices = {
   getDashboardData,
   getServiceRequests,
@@ -927,4 +1000,6 @@ export const StatsServices = {
   getReviewSupportStatsSimple,
   getProviderDashboard,
   getProviderSummaryStats,
+  getRecentServices,
+  getStaffRecentServices,
 }
