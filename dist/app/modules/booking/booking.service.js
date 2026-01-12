@@ -362,6 +362,26 @@ const updateBookingFees = async (id, payload) => {
     }
     return result;
 };
+const getUpcomingBookings = async (staffId) => {
+    const now = new Date();
+    // Local midnight today
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    console.log({ startOfToday, staffId });
+    const result = await booking_model_1.Booking.find({
+        staff: staffId,
+        date: { $gte: startOfToday }, // everything today and in the future
+        status: { $nin: ['cancelled', 'draft'] },
+        // TODO: after testing complete need uncomment
+        // $or: [{ bookingFeeStatus: 'paid' }, { bookingFee: 0 }],
+    })
+        .sort({ date: 1 })
+        .populate({
+        path: 'user',
+        select: '-password -__v -createdAt -updatedAt -authentication',
+    });
+    return result;
+};
 exports.BookingServices = {
     createBooking,
     getAllBookings,
@@ -374,4 +394,5 @@ exports.BookingServices = {
     updatePrice,
     updateBookingFees,
     getWeeklyBookingsByUser,
+    getUpcomingBookings,
 };

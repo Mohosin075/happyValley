@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.itemExtractionSchema = exports.isSetEqual = exports.bookingSearchableFields = exports.bookingFilterables = void 0;
+exports.itemRemovalSchema = exports.itemExtractionSchema = exports.isSetEqual = exports.bookingSearchableFields = exports.bookingFilterables = void 0;
 // Filterable fields for Booking
 exports.bookingFilterables = [
     'startTime',
@@ -52,5 +52,19 @@ exports.itemExtractionSchema = {
             },
         },
         required: ['name', 'quantity'],
+    },
+};
+exports.itemRemovalSchema = {
+    name: 'remove_grocery_item',
+    description: 'Remove a grocery item from the kitchen restock list',
+    parameters: {
+        type: 'object',
+        properties: {
+            name: {
+                type: 'string',
+                description: 'Name of the grocery item to remove (e.g., "tomatoes")',
+            },
+        },
+        required: ['name'],
     },
 };

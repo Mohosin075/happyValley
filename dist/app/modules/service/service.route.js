@@ -16,6 +16,6 @@ router.get('/', service_controller_1.ServiceController.getAllServices);
 router.get('/get-services-for-add-staff', service_controller_1.ServiceController.getServicesForAddStaff);
 router.get('/:id', service_controller_1.ServiceController.getSingleService);
 router.post('/', (0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(service_validation_1.ServiceValidations.create), service_controller_1.ServiceController.createService);
-router.patch('/:id', (0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(service_validation_1.ServiceValidations.update), service_controller_1.ServiceController.updateService);
+router.patch('/:id', (0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(service_validation_1.ServiceValidations.update), service_controller_1.ServiceController.updateService);
 router.delete('/:id', (0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), service_controller_1.ServiceController.deleteService);
 exports.ServiceRoutes = router;

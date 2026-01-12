@@ -3,9 +3,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.reuseFromPastOrder = exports.getPastOrders = exports.confirmGroceryOrder = exports.sendMessageToGroceryBot = void 0;
+exports.removeItemFromGrocerySession = exports.getActiveSession = exports.addManualItems = exports.getSingleGrocerySession = exports.reuseFromPastOrder = exports.getPastOrders = exports.confirmGroceryOrder = exports.sendMessageToGroceryBot = void 0;
 const openai_1 = __importDefault(require("openai"));
 const booking_model_1 = require("./booking.model");
+const service_model_1 = require("../service/service.model");
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const booking_constants_1 = require("./booking.constants");
 const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
@@ -20,7 +21,17 @@ exports.sendMessageToGroceryBot = (0, catchAsync_1.default)(async (req, res) => 
     const { sessionId, message } = req.body;
     const user = req.user;
     // Find or create session
-    let session = await booking_model_1.GroceryChat.findById(sessionId);
+    let session;
+    if (sessionId) {
+        session = await booking_model_1.GroceryChat.findById(sessionId);
+    }
+    else {
+        // Best UX: Automatically find the latest 'draft' session for this user
+        session = await booking_model_1.GroceryChat.findOne({
+            user: user.authId,
+            status: 'draft',
+        }).sort({ createdAt: -1 });
+    }
     if (!session) {
         session = await booking_model_1.GroceryChat.create({
             user: user.authId,
@@ -98,51 +109,85 @@ exports.sendMessageToGroceryBot = (0, catchAsync_1.default)(async (req, res) => 
 2. Confirm item details including type, brand, and quantity
 3. Provide kitchen-specific suggestions (storage tips, alternatives, freshness advice)
 4. NOT provide general grocery shopping advice - focus on kitchen operations
+5. **Handle multiple items at once** - if a user provides a list, extract all items.
+6. **Handle item removals** - if a user wants to remove an item, call the removal tool.
 
-Extract items using function calls when users mention specific grocery items.`,
+Extract items using function calls when users mention adding or removing grocery items. If they mention multiple additions or removals, call the tool for each one.`,
                 },
                 ...conversationMessages,
             ],
-            tools: [{ type: 'function', function: booking_constants_1.itemExtractionSchema }],
+            tools: [
+                { type: 'function', function: booking_constants_1.itemExtractionSchema },
+                { type: 'function', function: booking_constants_1.itemRemovalSchema },
+            ],
             tool_choice: 'auto',
         });
         const choice = aiExtract.choices[0];
         const toolCalls = choice.message.tool_calls;
         // ========================================
-        // If AI extracted an item via function call
+        // If AI extracted items via function calls
         // ========================================
         if (choice.finish_reason === 'tool_calls' && (toolCalls === null || toolCalls === void 0 ? void 0 : toolCalls.length)) {
-            const firstToolCall = toolCalls[0];
-            const extracted = JSON.parse(firstToolCall.function.arguments);
-            // Save extracted item with all details
-            session.items.push({
-                name: extracted.name,
-                quantity: extracted.quantity,
-                type: extracted.type || undefined,
-                brand: extracted.brand || undefined,
-            });
-            // Generate kitchen-specific suggestion
-            const suggestionAI = await client.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    {
-                        role: 'system',
-                        content: `You are a kitchen management expert. Provide brief, practical advice about the grocery item for kitchen operations. Focus on:
+            const addedItems = [];
+            const removedItems = [];
+            for (const toolCall of toolCalls) {
+                const toolCallAny = toolCall;
+                const extracted = JSON.parse(toolCallAny.function.arguments);
+                if (toolCallAny.function.name === 'extract_grocery_item') {
+                    // Save extracted item with all details
+                    const newItem = {
+                        name: extracted.name,
+                        quantity: extracted.quantity,
+                        type: extracted.type || undefined,
+                        brand: extracted.brand || undefined,
+                    };
+                    session.items.push(newItem);
+                    addedItems.push(newItem);
+                }
+                else if (toolCallAny.function.name === 'remove_grocery_item') {
+                    const initialCount = session.items.length;
+                    session.items = session.items.filter(item => item.name.toLowerCase() !== extracted.name.toLowerCase());
+                    if (session.items.length < initialCount) {
+                        removedItems.push(extracted.name);
+                    }
+                }
+            }
+            let confirmationMessage = '';
+            if (addedItems.length > 0) {
+                const itemsListStr = addedItems
+                    .map(item => `✓ Added: ${item.name} (${item.quantity})${item.brand ? ` - ${item.brand}` : ''}${item.type ? ` [${item.type}]` : ''}`)
+                    .join('\n');
+                confirmationMessage += itemsListStr + '\n\n';
+            }
+            if (removedItems.length > 0) {
+                confirmationMessage += `󰆴 Removed: ${removedItems.join(', ')}\n\n`;
+            }
+            // Generate kitchen-specific suggestion for the first added item
+            let suggestion = 'Your grocery list has been updated.';
+            if (addedItems.length > 0) {
+                const firstItem = addedItems[0];
+                const suggestionAI = await client.chat.completions.create({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: `You are a kitchen management expert. Provide brief, practical advice about the grocery item for kitchen operations. Focus on:
 - Storage recommendations
 - Freshness indicators
 - Kitchen-specific usage tips
 - Alternative options if unavailable
 Keep responses concise (2-3 sentences max).`,
-                    },
-                    {
-                        role: 'user',
-                        content: `Item: ${extracted.name}, Quantity: ${extracted.quantity}${extracted.type ? `, Type: ${extracted.type}` : ''}${extracted.brand ? `, Brand: ${extracted.brand}` : ''}`,
-                    },
-                ],
-            });
-            const suggestion = (_a = suggestionAI.choices[0].message.content) !== null && _a !== void 0 ? _a : 'Item added to your kitchen restock list.';
-            // Confirmation message
-            const confirmationMessage = `✓ Added: ${extracted.name} (${extracted.quantity})${extracted.brand ? ` - ${extracted.brand}` : ''}${extracted.type ? ` [${extracted.type}]` : ''}\n\n${suggestion}\n\nAnything else you need for your kitchen?`;
+                        },
+                        {
+                            role: 'user',
+                            content: `Item: ${firstItem.name}, Quantity: ${firstItem.quantity}${firstItem.type ? `, Type: ${firstItem.type}` : ''}${firstItem.brand ? `, Brand: ${firstItem.brand}` : ''}`,
+                        },
+                    ],
+                });
+                suggestion =
+                    (_a = suggestionAI.choices[0].message.content) !== null && _a !== void 0 ? _a : 'Items updated in your kitchen restock list.';
+            }
+            confirmationMessage += `${suggestion}\n\nAnything else you need for your kitchen?`;
             session.conversationHistory.push({
                 role: 'assistant',
                 content: confirmationMessage,
@@ -152,10 +197,11 @@ Keep responses concise (2-3 sentences max).`,
             return (0, sendResponse_1.default)(res, {
                 statusCode: http_status_codes_1.StatusCodes.OK,
                 success: true,
-                message: 'Item added successfully',
+                message: 'List updated successfully',
                 data: {
                     sessionId: session._id,
-                    item: extracted,
+                    addedItems,
+                    removedItems,
                     response: confirmationMessage,
                     items: session.items,
                 },
@@ -221,11 +267,49 @@ exports.confirmGroceryOrder = (0, catchAsync_1.default)(async (req, res) => {
     }
     session.status = 'confirmed';
     await session.save();
+    // ---------------------------------------------------------
+    // INTEGRATION: Create a formal Booking record
+    // ---------------------------------------------------------
+    try {
+        // 1. Find the "Grocery Restock" service (or create it if it doesn't exist)
+        let groceryService = await service_model_1.Service.findOne({ name: 'Grocery Restock' });
+        if (!groceryService) {
+            // Fallback: search for any service related to kitchen/grocery
+            groceryService = await service_model_1.Service.findOne({
+                name: { $regex: /grocery|restock|kitchen/i },
+            });
+        }
+        if (groceryService) {
+            // 2. Prep service details from grocery items
+            const serviceDetails = session.items.map(item => ({
+                name: item.name,
+                value: `${item.quantity}${item.brand ? ` (${item.brand})` : ''}${item.type ? ` [${item.type}]` : ''}`,
+            }));
+            // 3. Create the booking
+            await booking_model_1.Booking.create({
+                user: session.user,
+                service: groceryService._id,
+                date: new Date(),
+                status: 'confirmed',
+                price: 0, // AI grocery booking is usually free or handled separately
+                serviceType: {
+                    title: 'AI Grocery Restock',
+                    description: `Automated restock list for ${session.items.length} items.`,
+                },
+                serviceDetails,
+                notes: `Session ID: ${session._id}`,
+            });
+        }
+    }
+    catch (bookingError) {
+        console.error('Failed to create formal booking for grocery order:', bookingError);
+        // We don't throw here to avoid failing the whole request since session is already marked confirmed
+    }
     // Generate final summary
     const itemSummary = session.items
         .map((item, idx) => `${idx + 1}. ${item.name} - ${item.quantity}${item.brand ? ` (${item.brand})` : ''}${item.type ? ` [${item.type}]` : ''}`)
         .join('\n');
-    const confirmationMessage = `✅ Your kitchen restock order has been confirmed!\n\nItems:\n${itemSummary}\n\nTotal items: ${session.items.length}\n\nYour order will be fulfilled using our chosen store. No budget or receipt requirements needed.`;
+    const confirmationMessage = `✅ Your kitchen restock order has been confirmed and a booking record has been created!\n\nItems:\n${itemSummary}\n\nTotal items: ${session.items.length}\n\nYour order will be fulfilled using our chosen store. No budget or receipt requirements needed.`;
     session.conversationHistory.push({
         role: 'assistant',
         content: confirmationMessage,
@@ -297,5 +381,128 @@ exports.reuseFromPastOrder = (0, catchAsync_1.default)(async (req, res) => {
             items: session.items,
             response: confirmationMessage,
         },
+    });
+});
+// ====================================
+// Get Single Grocery Session details
+// ====================================
+exports.getSingleGrocerySession = (0, catchAsync_1.default)(async (req, res) => {
+    const { sessionId } = req.params;
+    const session = await booking_model_1.GroceryChat.findById(sessionId);
+    if (!session) {
+        return (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.NOT_FOUND,
+            success: false,
+            message: 'Session not found',
+            data: null,
+        });
+    }
+    return (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Session retrieved successfully',
+        data: session,
+    });
+});
+// ====================================
+// Add Manual Items (No AI extraction)
+// ====================================
+exports.addManualItems = (0, catchAsync_1.default)(async (req, res) => {
+    const { sessionId, items } = req.body; // items: array of { name, quantity, type?, brand? }
+    const session = await booking_model_1.GroceryChat.findById(sessionId);
+    if (!session) {
+        return (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.NOT_FOUND,
+            success: false,
+            message: 'Session not found',
+            data: null,
+        });
+    }
+    if (!Array.isArray(items) || items.length === 0) {
+        return (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.BAD_REQUEST,
+            success: false,
+            message: 'Please provide an array of items',
+            data: null,
+        });
+    }
+    // Add items to session
+    session.items.push(...items);
+    const confirmationMessage = `✓ Manually added ${items.length} items to your list.`;
+    session.conversationHistory.push({
+        role: 'assistant',
+        content: confirmationMessage,
+        timestamp: new Date(),
+    });
+    await session.save();
+    return (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Items added successfully',
+        data: {
+            sessionId: session._id,
+            items: session.items,
+            response: confirmationMessage,
+        },
+    });
+});
+// ====================================
+// Get Active Draft Session
+// ====================================
+exports.getActiveSession = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const session = await booking_model_1.GroceryChat.findOne({
+        user: user.authId,
+        status: 'draft',
+    }).sort({ createdAt: -1 });
+    return (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: session
+            ? 'Active session retrieved'
+            : 'No active session found',
+        data: session || null,
+    });
+});
+// ====================================
+// Remove single item from session
+// ====================================
+exports.removeItemFromGrocerySession = (0, catchAsync_1.default)(async (req, res) => {
+    const { sessionId, itemId } = req.body;
+    const user = req.user;
+    let session;
+    if (sessionId) {
+        session = await booking_model_1.GroceryChat.findById(sessionId);
+    }
+    else {
+        session = await booking_model_1.GroceryChat.findOne({
+            user: user.authId,
+            status: 'draft',
+        }).sort({ createdAt: -1 });
+    }
+    if (!session) {
+        return (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.NOT_FOUND,
+            success: false,
+            message: 'Session not found',
+            data: null,
+        });
+    }
+    const initialLength = session.items.length;
+    session.items = session.items.filter((item) => item._id.toString() !== itemId);
+    if (session.items.length === initialLength) {
+        return (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.NOT_FOUND,
+            success: false,
+            message: 'Item not found in this session',
+            data: null,
+        });
+    }
+    await session.save();
+    return (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Item removed successfully',
+        data: session,
     });
 });

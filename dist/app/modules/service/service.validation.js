@@ -31,6 +31,7 @@ exports.ServiceValidations = {
             description: zod_1.z.string().optional(),
             servicesProvided: zod_1.z.array(zod_1.z.string()).optional(),
             occasions: zod_1.z.array(zod_1.z.string()).optional(),
+            image: zod_1.z.string().optional(),
             staff: zod_1.z.array(zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/)).optional(),
             serviceType: zod_1.z
                 .array(zod_1.z.object({
