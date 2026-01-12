@@ -507,7 +507,6 @@ const updateBookingFees = async (
 
 const getUpcomingBookings = async (staffId: string): Promise<IBooking[]> => {
   const now = new Date()
-  
   // Local midnight today
   const startOfToday = new Date(now)
   startOfToday.setHours(0, 0, 0, 0)
@@ -516,8 +515,10 @@ const getUpcomingBookings = async (staffId: string): Promise<IBooking[]> => {
 
   const result = await Booking.find({
     staff: staffId,
-    date: { $gte: startOfToday },  // everything today and in the future
+    date: { $gte: startOfToday }, // everything today and in the future
     status: { $nin: ['cancelled', 'draft'] },
+    // TODO: after testing complete need uncomment
+    // $or: [{ bookingFeeStatus: 'paid' }, { bookingFee: 0 }],
   })
     .sort({ date: 1 })
     .populate({
