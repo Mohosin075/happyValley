@@ -84,7 +84,7 @@ const myServices = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getBookingsByDate = catchAsync(async (req: Request, res: Response) => {
-  const { date } = req.body as { date: string }
+  const { date } = req.query as { date: string }
   const result = await BookingServices.getBookingsByDate(date)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
