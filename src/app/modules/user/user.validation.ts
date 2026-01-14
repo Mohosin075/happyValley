@@ -66,3 +66,8 @@ export const createStaffSchema = z.object({
     address: addressSchema.optional(),
   }),
 })
+export const updateAvailabilitySchema = z.object({
+  body: z.object({
+    isAvailable: z.boolean({ required_error: 'Availability status is required' }),
+  }),
+})

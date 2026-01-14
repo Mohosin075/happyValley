@@ -7,7 +7,11 @@ import ApiError from '../../../errors/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { S3Helper } from '../../../helpers/image/s3helper'
 import fileUploadHandler from '../../middleware/fileUploadHandler'
-import { createStaffSchema, updateUserSchema } from './user.validation'
+import {
+  createStaffSchema,
+  updateAvailabilitySchema,
+  updateUserSchema,
+} from './user.validation'
 import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
 
 const router = express.Router()
@@ -36,6 +40,13 @@ router.patch(
 
   validateRequest(updateUserSchema),
   UserController.updateProfile,
+)
+
+router.patch(
+  '/availability',
+  auth(USER_ROLES.STAFF),
+  validateRequest(updateAvailabilitySchema),
+  UserController.updateAvailability,
 )
 
 router.delete(

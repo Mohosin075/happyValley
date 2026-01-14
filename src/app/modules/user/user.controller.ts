@@ -142,6 +142,17 @@ const getStaffsByServiceId = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const updateAvailability = catchAsync(async (req: Request, res: Response) => {
+  const { isAvailable } = req.body
+  const result = await UserServices.updateAvailability(req.user!, isAvailable)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Availability updated successfully',
+    data: result,
+  })
+})
+
 export const UserController = {
   updateProfile,
   getAllUsers,
@@ -155,4 +166,5 @@ export const UserController = {
   getAllStaff,
   getStaffById,
   getStaffsByServiceId,
+  updateAvailability,
 }

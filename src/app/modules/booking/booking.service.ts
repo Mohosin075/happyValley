@@ -3,6 +3,7 @@ import ApiError from '../../../errors/ApiError'
 import { IBookingFilterables, IBooking } from './booking.interface'
 import { Booking } from './booking.model'
 import { Service } from '../service/service.model'
+import { User } from '../user/user.model'
 import { JwtPayload } from 'jsonwebtoken'
 import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
@@ -41,6 +42,15 @@ const createBooking = async (
           StatusCodes.BAD_REQUEST,
           'Selected staff is not assigned to this service',
         )
+      }
+
+      // Check if staff is available
+      const staffInfo = await User.findById(payload.staff).select('isAvailable status')
+      if (!staffInfo) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Staff not found')
+      }
+      if (!staffInfo.isAvailable) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Selected staff is currently unavailable')
       }
 
       // Check for conflicts: One staff per client per day

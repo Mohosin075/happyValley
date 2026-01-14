@@ -386,6 +386,29 @@ const updateUserStatus = async (userId: string, status: USER_STATUS) => {
   return 'User status updated successfully.'
 }
 
+const updateAvailability = async (user: JwtPayload, isAvailable: boolean) => {
+  const isUserExist = await User.findOne({
+    _id: user.authId,
+    status: { $nin: [USER_STATUS.DELETED] },
+  })
+
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
+  }
+
+  const updatedUser = await User.findOneAndUpdate(
+    { _id: user.authId, status: { $nin: [USER_STATUS.DELETED] } },
+    { $set: { isAvailable } },
+    { new: true },
+  ).select('isAvailable')
+
+  if (!updatedUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to update availability.')
+  }
+
+  return updatedUser
+}
+
 export const getProfile = async (user: JwtPayload) => {
   // --- Fetch user ---
   const isUserExist = await User.findOne({
@@ -422,11 +445,15 @@ const getAllStaff = async (
     })
   }
 
-  // 🎯 Dynamic filters (role, verified, etc.)
+  // 🎯 Dynamic filters (role, verified, isAvailable, etc.)
   if (Object.keys(otherFilters).length) {
     for (const [key, value] of Object.entries(otherFilters)) {
       andConditions.push({ [key]: value })
     }
+  } else {
+    // Default to available staff if no specific filter provided (optional: might want to show all for admin)
+    // but usually for public/client views we only want available staff.
+    // For now, let's just make it possible to filter.
   }
 
   // 🛑 Always exclude deleted users
@@ -483,7 +510,8 @@ export const getStaffsByServiceId = async (serviceId: string) => {
   })
     .populate({
       path: 'staff',
-      select: 'name email role _id profile',
+      match: { isAvailable: true, status: USER_STATUS.ACTIVE },
+      select: 'name email role _id profile isAvailable',
     })
     .lean()
 
@@ -491,7 +519,9 @@ export const getStaffsByServiceId = async (serviceId: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Service not found.')
   }
 
-  const staffIds = service.staff?.map(s => s._id) || []
+  // Filter out any null staff that didn't match the 'match' criteria in populate
+  const validStaff = (service.staff as any[] || []).filter(s => s !== null)
+  const staffIds = validStaff.map(s => s._id) || []
 
   // 2. Fetch rating + completed bookings
   const [ratings, completed] = await Promise.all([
@@ -531,7 +561,7 @@ export const getStaffsByServiceId = async (serviceId: string) => {
   )
 
   // 4. Attach data to staff list
-  const staffData = service.staff.map(staff => ({
+  const staffData = validStaff.map(staff => ({
     ...staff,
     avgRating: ratingMap.get(String(staff._id)) || 0,
     completedServices: completedMap.get(String(staff._id)) || 0,
@@ -558,4 +588,6 @@ export const UserServices = {
   getAllStaff,
   getStaffById,
   getStaffsByServiceId,
+
+  updateAvailability,
 }

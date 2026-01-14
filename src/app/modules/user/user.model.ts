@@ -54,6 +54,7 @@ const UserSchema = new Schema<IUser, UserModel>(
     provider: { type: String },
     deviceToken: { type: String },
     timezone: { type: String, default: 'UTC' },
+    isAvailable: { type: Boolean, default: true },
 
     authentication: {
       restrictionLeftAt: { type: Date, default: null },
