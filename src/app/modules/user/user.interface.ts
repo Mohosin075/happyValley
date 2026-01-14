@@ -63,6 +63,8 @@ export interface IUser {
   // membership: Membership
 
   authentication: IAuthentication
+  avgRating?: number
+  completedServiceCount?: number
   createdAt: Date
   updatedAt: Date
 }

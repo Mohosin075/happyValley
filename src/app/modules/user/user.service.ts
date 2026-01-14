@@ -414,13 +414,41 @@ export const getProfile = async (user: JwtPayload) => {
   const isUserExist = await User.findOne({
     _id: user.authId,
     status: { $nin: [USER_STATUS.DELETED] },
-  }).select('-authentication -password -__v')
+  }).select('-authentication -password -__v').populate({ path: 'services', select: 'name' })
 
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
-  return isUserExist
+  // Convert to object to add custom fields
+  const profileData = isUserExist.toObject()
+
+  // --- Add statistics if user is STAFF ---
+  if (isUserExist.role === USER_ROLES.STAFF) {
+    const [ratings, completed] = await Promise.all([
+      // ⭐ Staff Average Rating
+      Review.aggregate([
+        { $match: { reviewee: isUserExist._id, status: 'approved' } },
+        {
+          $group: {
+            _id: '$reviewee',
+            avgRating: { $avg: '$rating' },
+          },
+        },
+      ]),
+
+      // ✅ Completed Services Count
+      Booking.countDocuments({
+        staff: isUserExist._id,
+        status: 'completed',
+      }),
+    ])
+
+    profileData.avgRating = ratings.length > 0 ? ratings[0].avgRating : 0
+    profileData.completedServiceCount = completed
+  }
+
+  return profileData
 }
 
 const getAllStaff = async (
