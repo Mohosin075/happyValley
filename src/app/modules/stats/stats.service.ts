@@ -740,6 +740,7 @@ const getProviderDashboard = async (
     yourRatingData,
     averageRatingData,
     totalEarnings,
+    scheduledServices,
   ] = await Promise.all([
     // Today's services (bookings assigned to this provider today)
     Booking.countDocuments({
@@ -788,10 +789,18 @@ const getProviderDashboard = async (
         },
       },
     ]),
+
+    // Scheduled services
+    Booking.countDocuments({
+      staff: providerId,
+      date: { $gte: today },
+      status: { $in: ['confirmed', 'scheduled', 'requested'] },
+    }),
   ])
 
   return {
     todayServices,
+    scheduledServices,
     completedServices,
     totalServices,
     servicesThisWeek, // New field added

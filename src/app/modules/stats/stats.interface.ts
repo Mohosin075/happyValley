@@ -83,6 +83,7 @@ export interface IPaymentStats {
 // interfaces/provider-dashboard.interface.ts
 export interface IProviderDashboard {
   todayServices: number
+  scheduledServices: number
   completedServices: number
   totalServices: number
   yourRating: number
