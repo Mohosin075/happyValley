@@ -33,13 +33,6 @@ const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
-  console.log({payload})
-
-  if (isUserExist.profile) {
-    const url = new URL(isUserExist.profile)
-    const key = url.pathname.substring(1)
-    // await S3Helper.deleteFromS3(key)
-  }
 
   const updatedProfile = await User.findOneAndUpdate(
     { _id: user.authId, status: { $nin: [USER_STATUS.DELETED] } },

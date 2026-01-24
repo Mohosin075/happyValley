@@ -32,7 +32,9 @@ export const updateUserSchema = z.object({
   body: z
     .object({
       name: z.string().optional(),
-      profile: z.string().url().optional(),
+      profile: z.string().optional(),
+      businessName: z.string().optional(),
+      licenseNumber: z.string().optional(),
       phone: z.string().optional(),
       description: z.string().optional(),
       specialty: z.string().optional(),

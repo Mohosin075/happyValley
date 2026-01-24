@@ -82,6 +82,23 @@ const myServices = catchAsync(async (req: Request, res: Response) => {
     data: result,
   })
 })
+const myOrder = catchAsync(async (req: Request, res: Response) => {
+  const filterables = pick(req.query, bookingFilterables)
+  const pagination = pick(req.query, paginationFields)
+
+  const result = await BookingServices.myOrder(
+    req.user!,
+    filterables,
+    pagination,
+  )
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Bookings retrieved successfully',
+    data: result,
+  })
+})
 
 const getBookingsByDate = catchAsync(async (req: Request, res: Response) => {
   const { date } = req.query as { date: string }
@@ -189,4 +206,5 @@ export const BookingController = {
   updateBookingFees,
   getWeeklyBookingsByUser,
   getUpcomingBookings,
+  myOrder,
 }

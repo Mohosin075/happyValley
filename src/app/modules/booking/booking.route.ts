@@ -49,6 +49,18 @@ router
     subscriptionGuard,
     BookingController.myServices,
   )
+router
+  .route('/my-orders')
+  .get(
+    auth(
+      USER_ROLES.SUPER_ADMIN,
+      USER_ROLES.ADMIN,
+      USER_ROLES.CLIENT,
+      USER_ROLES.STAFF,
+    ),
+    subscriptionGuard,
+    BookingController.myOrder,
+  )
 
 // Track upcoming bookings route: /bookings/my-upcoming
 router

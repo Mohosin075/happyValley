@@ -42,6 +42,7 @@ export interface IUser {
   email?: string
   profile?: string
   businessName?: string
+  licenseNumber?: string
   phone?: string
   description?: string
   specialty?: string

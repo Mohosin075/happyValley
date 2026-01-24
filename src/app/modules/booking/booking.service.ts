@@ -83,7 +83,7 @@ const createBooking = async (
 
 
     const isPremiumUser = await Subscription.findOne({ user: user.authId })
-    console.log(isPremiumUser)
+
     if (isPremiumUser?.status === 'active') {
       payload.bookingFee = 0
     } else {
@@ -315,7 +315,66 @@ const myServices = async (
         path: 'user',
         select: '-password -__v -createdAt -updatedAt -authentication',
       }),
-    Booking.countDocuments(whereConditions),
+    Booking.countDocuments({ ...whereConditions, staff: user.authId }),
+  ])
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    data: result,
+  }
+}
+
+
+const myOrder = async (
+  user: JwtPayload,
+  filterables: IBookingFilterables,
+  pagination: IPaginationOptions,
+) => {
+  console.log({user})
+  const { searchTerm, ...filterData } = filterables
+  const { page, skip, limit, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(pagination)
+
+  const andConditions = []
+
+  // Search functionality
+  if (searchTerm) {
+    andConditions.push({
+      $or: bookingSearchableFields.map(field => ({
+        [field]: {
+          $regex: searchTerm,
+          $options: 'i',
+        },
+      })),
+    })
+  }
+
+  // Filter functionality
+  if (Object.keys(filterData).length) {
+    andConditions.push({
+      $and: Object.entries(filterData).map(([key, value]) => ({
+        [key]: value,
+      })),
+    })
+  }
+
+  const whereConditions = andConditions.length ? { $and: andConditions } : {}
+
+  const [result, total] = await Promise.all([
+    Booking.find({ ...whereConditions, user: user.authId })
+      .skip(skip)
+      .limit(limit)
+      .sort({ [sortBy]: sortOrder })
+      .populate({
+        path: 'user',
+        select: '-password -__v -createdAt -updatedAt -authentication',
+      }),
+    Booking.countDocuments({ ...whereConditions, user: user.authId }),
   ])
 
   return {
@@ -521,7 +580,7 @@ const getUpcomingBookings = async (staffId: string): Promise<IBooking[]> => {
   const startOfToday = new Date(now)
   startOfToday.setHours(0, 0, 0, 0)
 
-  console.log({ startOfToday, staffId })
+
 
   const result = await Booking.find({
     staff: staffId,
@@ -553,4 +612,5 @@ export const BookingServices = {
   updateBookingFees,
   getWeeklyBookingsByUser,
   getUpcomingBookings,
+  myOrder,
 }
