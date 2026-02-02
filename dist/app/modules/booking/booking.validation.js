@@ -25,8 +25,6 @@ exports.BookingValidations = {
             service: objectId.optional(),
             staff: objectId.optional(),
             date: dateField, // required
-            startTime: timeField.optional(), // optional HH:mm
-            endTime: timeField.optional(), // optional HH:mm
             address: zod_1.z
                 .object({
                 address: zod_1.z.string().optional(),

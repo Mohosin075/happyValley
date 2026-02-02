@@ -371,7 +371,7 @@ const myOrder = async (
       .limit(limit)
       .sort({ [sortBy]: sortOrder })
       .populate({
-        path: 'user',
+        path: 'user service',
         select: '-password -__v -createdAt -updatedAt -authentication',
       }),
     Booking.countDocuments({ ...whereConditions, user: user.authId }),

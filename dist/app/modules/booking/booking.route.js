@@ -22,6 +22,9 @@ router
 router
     .route('/my-services')
     .get((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.STAFF), subscriptionGuard_1.default, booking_controller_1.BookingController.myServices);
+router
+    .route('/my-orders')
+    .get((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.STAFF), subscriptionGuard_1.default, booking_controller_1.BookingController.myOrder);
 // Track upcoming bookings route: /bookings/my-upcoming
 router
     .route('/my-upcoming')
@@ -42,7 +45,7 @@ router
     .patch((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(booking_validation_1.BookingValidations.updateFees), booking_controller_1.BookingController.updateBookingFees);
 router
     .route('/weekly')
-    .get((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), booking_controller_1.BookingController.getWeeklyBookingsByUser);
+    .get((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF), booking_controller_1.BookingController.getWeeklyBookingsByUser);
 // Single booking routes: /bookings/:id
 router
     .route('/:id')

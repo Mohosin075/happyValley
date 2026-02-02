@@ -588,7 +588,7 @@ const getProviderDashboard = async (providerId) => {
     startOfWeek.setDate(diff);
     startOfWeek.setHours(0, 0, 0, 0);
     // Get all stats in parallel
-    const [todayServices, completedServices, totalServices, servicesThisWeek, yourRatingData, averageRatingData, totalEarnings,] = await Promise.all([
+    const [todayServices, completedServices, totalServices, servicesThisWeek, yourRatingData, averageRatingData, totalEarnings, scheduledServices,] = await Promise.all([
         // Today's services (bookings assigned to this provider today)
         booking_model_1.Booking.countDocuments({
             staff: providerId,
@@ -630,9 +630,16 @@ const getProviderDashboard = async (providerId) => {
                 },
             },
         ]),
+        // Scheduled services
+        booking_model_1.Booking.countDocuments({
+            staff: providerId,
+            date: { $gte: today },
+            status: { $in: ['confirmed', 'scheduled', 'requested'] },
+        }),
     ]);
     return {
         todayServices,
+        scheduledServices,
         completedServices,
         totalServices,
         servicesThisWeek, // New field added

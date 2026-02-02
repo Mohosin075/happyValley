@@ -13,6 +13,7 @@ const UserSchema = new mongoose_1.Schema({
     email: { type: String, unique: true, lowercase: true, required: true },
     profile: { type: String },
     businessName: { type: String },
+    licenseNumber: { type: String },
     phone: { type: String },
     description: { type: String },
     specialty: { type: String },
@@ -53,6 +54,7 @@ const UserSchema = new mongoose_1.Schema({
     provider: { type: String },
     deviceToken: { type: String },
     timezone: { type: String, default: 'UTC' },
+    isAvailable: { type: Boolean, default: true },
     authentication: {
         restrictionLeftAt: { type: Date, default: null },
         resetPassword: { type: Boolean, default: false },

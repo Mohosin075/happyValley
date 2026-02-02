@@ -14,6 +14,7 @@ const processReqBody_1 = require("../../middleware/processReqBody");
 const router = express_1.default.Router();
 router.get('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.SUPER_ADMIN), user_controller_1.UserController.getProfile);
 router.patch('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.SUPER_ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(user_validation_1.updateUserSchema), user_controller_1.UserController.updateProfile);
+router.patch('/availability', (0, auth_1.default)(user_1.USER_ROLES.STAFF), (0, validateRequest_1.default)(user_validation_1.updateAvailabilitySchema), user_controller_1.UserController.updateAvailability);
 router.delete('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF, user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.SUPER_ADMIN), user_controller_1.UserController.deleteProfile);
 router
     .route('/')

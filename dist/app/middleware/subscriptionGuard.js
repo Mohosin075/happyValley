@@ -14,7 +14,7 @@ const subscriptionGuard = async (req, res, next) => {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'User not authenticated');
         }
         const user = await user_model_1.User.findById(userId).select('subscribe');
-        if (!user || !user.subscribe) {
+        if (!user) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.PAYMENT_REQUIRED, 'Active subscription required to access this resource');
         }
         next();

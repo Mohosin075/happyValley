@@ -14,7 +14,7 @@ const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const user_constants_1 = require("./user.constants");
 const updateProfile = (0, catchAsync_1.default)(async (req, res) => {
     const { images, ...userData } = req.body;
-    images && (userData.images = images[0]);
+    images && (userData.profile = images[0]);
     const result = await user_service_1.UserServices.updateProfile(req.user, userData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
@@ -128,6 +128,16 @@ const getStaffsByServiceId = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const updateAvailability = (0, catchAsync_1.default)(async (req, res) => {
+    const { isAvailable } = req.body;
+    const result = await user_service_1.UserServices.updateAvailability(req.user, isAvailable);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Availability updated successfully',
+        data: result,
+    });
+});
 exports.UserController = {
     updateProfile,
     getAllUsers,
@@ -140,4 +150,5 @@ exports.UserController = {
     getAllStaff,
     getStaffById,
     getStaffsByServiceId,
+    updateAvailability,
 };

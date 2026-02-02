@@ -27,11 +27,6 @@ const updateProfile = async (user, payload) => {
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    if (isUserExist.profile) {
-        const url = new URL(isUserExist.profile);
-        const key = url.pathname.substring(1);
-        // await S3Helper.deleteFromS3(key)
-    }
     const updatedProfile = await user_model_1.User.findOneAndUpdate({ _id: user.authId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, {
         $set: payload,
     }, { new: true });
@@ -285,16 +280,54 @@ const updateUserStatus = async (userId, status) => {
     }
     return 'User status updated successfully.';
 };
+const updateAvailability = async (user, isAvailable) => {
+    const isUserExist = await user_model_1.User.findOne({
+        _id: user.authId,
+        status: { $nin: [user_1.USER_STATUS.DELETED] },
+    });
+    if (!isUserExist) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
+    }
+    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: user.authId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { isAvailable } }, { new: true }).select('isAvailable');
+    if (!updatedUser) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update availability.');
+    }
+    return updatedUser;
+};
 const getProfile = async (user) => {
     // --- Fetch user ---
     const isUserExist = await user_model_1.User.findOne({
         _id: user.authId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
-    }).select('-authentication -password -__v');
+    }).select('-authentication -password -__v').populate({ path: 'services', select: 'name' });
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    return isUserExist;
+    // Convert to object to add custom fields
+    const profileData = isUserExist.toObject();
+    // --- Add statistics if user is STAFF ---
+    if (isUserExist.role === user_1.USER_ROLES.STAFF) {
+        const [ratings, completed] = await Promise.all([
+            // ⭐ Staff Average Rating
+            review_model_1.Review.aggregate([
+                { $match: { reviewee: isUserExist._id, status: 'approved' } },
+                {
+                    $group: {
+                        _id: '$reviewee',
+                        avgRating: { $avg: '$rating' },
+                    },
+                },
+            ]),
+            // ✅ Completed Services Count
+            booking_model_1.Booking.countDocuments({
+                staff: isUserExist._id,
+                status: 'completed',
+            }),
+        ]);
+        profileData.avgRating = ratings.length > 0 ? ratings[0].avgRating : 0;
+        profileData.completedServiceCount = completed;
+    }
+    return profileData;
 };
 exports.getProfile = getProfile;
 const getAllStaff = async (paginationOptions, filterables = {}) => {
@@ -311,11 +344,16 @@ const getAllStaff = async (paginationOptions, filterables = {}) => {
             })),
         });
     }
-    // 🎯 Dynamic filters (role, verified, etc.)
+    // 🎯 Dynamic filters (role, verified, isAvailable, etc.)
     if (Object.keys(otherFilters).length) {
         for (const [key, value] of Object.entries(otherFilters)) {
             andConditions.push({ [key]: value });
         }
+    }
+    else {
+        // Default to available staff if no specific filter provided (optional: might want to show all for admin)
+        // but usually for public/client views we only want available staff.
+        // For now, let's just make it possible to filter.
     }
     // 🛑 Always exclude deleted users
     andConditions.push({
@@ -357,7 +395,6 @@ const getStaffById = async (userId) => {
     return user;
 };
 const getStaffsByServiceId = async (serviceId) => {
-    var _a;
     // 1. Check if service exists
     const service = await service_model_1.Service.findOne({
         _id: serviceId,
@@ -365,13 +402,16 @@ const getStaffsByServiceId = async (serviceId) => {
     })
         .populate({
         path: 'staff',
-        select: 'name email role _id profile',
+        match: { isAvailable: true, status: user_1.USER_STATUS.ACTIVE },
+        select: 'name email role _id profile isAvailable',
     })
         .lean();
     if (!service) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Service not found.');
     }
-    const staffIds = ((_a = service.staff) === null || _a === void 0 ? void 0 : _a.map(s => s._id)) || [];
+    // Filter out any null staff that didn't match the 'match' criteria in populate
+    const validStaff = (service.staff || []).filter(s => s !== null);
+    const staffIds = validStaff.map(s => s._id) || [];
     // 2. Fetch rating + completed bookings
     const [ratings, completed] = await Promise.all([
         // ⭐ Staff Ratings
@@ -404,7 +444,7 @@ const getStaffsByServiceId = async (serviceId) => {
     const ratingMap = new Map(ratings.map(r => [String(r._id), r.avgRating]));
     const completedMap = new Map(completed.map(c => [String(c._id), c.completedCount]));
     // 4. Attach data to staff list
-    const staffData = service.staff.map(staff => ({
+    const staffData = validStaff.map(staff => ({
         ...staff,
         avgRating: ratingMap.get(String(staff._id)) || 0,
         completedServices: completedMap.get(String(staff._id)) || 0,
@@ -429,4 +469,5 @@ exports.UserServices = {
     getAllStaff,
     getStaffById,
     getStaffsByServiceId: exports.getStaffsByServiceId,
+    updateAvailability,
 };

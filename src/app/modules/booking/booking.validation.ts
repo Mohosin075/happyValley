@@ -25,8 +25,6 @@ export const BookingValidations = {
       staff: objectId.optional(),
 
       date: dateField, // required
-      startTime: timeField.optional(), // optional HH:mm
-      endTime: timeField.optional(), // optional HH:mm
 
       address: z
         .object({

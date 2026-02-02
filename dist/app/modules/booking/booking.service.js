@@ -8,6 +8,7 @@ const http_status_codes_1 = require("http-status-codes");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const booking_model_1 = require("./booking.model");
 const service_model_1 = require("../service/service.model");
+const user_model_1 = require("../user/user.model");
 const paginationHelper_1 = require("../../../helpers/paginationHelper");
 const booking_constants_1 = require("./booking.constants");
 const mongoose_1 = require("mongoose");
@@ -28,6 +29,14 @@ const createBooking = async (user, payload) => {
             const isStaffValid = service.staff.some((s) => s.toString() === payload.staff.toString());
             if (!isStaffValid) {
                 throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Selected staff is not assigned to this service');
+            }
+            // Check if staff is available
+            const staffInfo = await user_model_1.User.findById(payload.staff).select('isAvailable status');
+            if (!staffInfo) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Staff not found');
+            }
+            if (!staffInfo.isAvailable) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Selected staff is currently unavailable');
             }
             // Check for conflicts: One staff per client per day
             if (payload.date) {
@@ -50,7 +59,6 @@ const createBooking = async (user, payload) => {
         // Force price to 0 on creation to prevent pre-prices
         payload.price = 0;
         const isPremiumUser = await subscription_model_1.Subscription.findOne({ user: user.authId });
-        console.log(isPremiumUser);
         if ((isPremiumUser === null || isPremiumUser === void 0 ? void 0 : isPremiumUser.status) === 'active') {
             payload.bookingFee = 0;
         }
@@ -218,7 +226,53 @@ const myServices = async (user, filterables, pagination) => {
             path: 'user',
             select: '-password -__v -createdAt -updatedAt -authentication',
         }),
-        booking_model_1.Booking.countDocuments(whereConditions),
+        booking_model_1.Booking.countDocuments({ ...whereConditions, staff: user.authId }),
+    ]);
+    return {
+        meta: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+        },
+        data: result,
+    };
+};
+const myOrder = async (user, filterables, pagination) => {
+    console.log({ user });
+    const { searchTerm, ...filterData } = filterables;
+    const { page, skip, limit, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(pagination);
+    const andConditions = [];
+    // Search functionality
+    if (searchTerm) {
+        andConditions.push({
+            $or: booking_constants_1.bookingSearchableFields.map(field => ({
+                [field]: {
+                    $regex: searchTerm,
+                    $options: 'i',
+                },
+            })),
+        });
+    }
+    // Filter functionality
+    if (Object.keys(filterData).length) {
+        andConditions.push({
+            $and: Object.entries(filterData).map(([key, value]) => ({
+                [key]: value,
+            })),
+        });
+    }
+    const whereConditions = andConditions.length ? { $and: andConditions } : {};
+    const [result, total] = await Promise.all([
+        booking_model_1.Booking.find({ ...whereConditions, user: user.authId })
+            .skip(skip)
+            .limit(limit)
+            .sort({ [sortBy]: sortOrder })
+            .populate({
+            path: 'user service',
+            select: '-password -__v -createdAt -updatedAt -authentication',
+        }),
+        booking_model_1.Booking.countDocuments({ ...whereConditions, user: user.authId }),
     ]);
     return {
         meta: {
@@ -367,7 +421,6 @@ const getUpcomingBookings = async (staffId) => {
     // Local midnight today
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
-    console.log({ startOfToday, staffId });
     const result = await booking_model_1.Booking.find({
         staff: staffId,
         date: { $gte: startOfToday }, // everything today and in the future
@@ -395,4 +448,5 @@ exports.BookingServices = {
     updateBookingFees,
     getWeeklyBookingsByUser,
     getUpcomingBookings,
+    myOrder,
 };

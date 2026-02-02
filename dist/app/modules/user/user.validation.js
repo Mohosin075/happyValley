@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createStaffSchema = exports.STAFF_SPECIALTY = exports.updateUserSchema = void 0;
+exports.updateAvailabilitySchema = exports.createStaffSchema = exports.STAFF_SPECIALTY = exports.updateUserSchema = void 0;
 const zod_1 = require("zod");
 // ------------------ SUB-SCHEMAS ------------------
 const addressSchema = zod_1.z.object({
@@ -30,7 +30,9 @@ exports.updateUserSchema = zod_1.z.object({
     body: zod_1.z
         .object({
         name: zod_1.z.string().optional(),
-        profile: zod_1.z.string().url().optional(),
+        profile: zod_1.z.string().optional(),
+        businessName: zod_1.z.string().optional(),
+        licenseNumber: zod_1.z.string().optional(),
         phone: zod_1.z.string().optional(),
         description: zod_1.z.string().optional(),
         specialty: zod_1.z.string().optional(),
@@ -58,5 +60,10 @@ exports.createStaffSchema = zod_1.z.object({
         description: zod_1.z.string().optional(),
         services: zod_1.z.array(zod_1.z.string()).optional(),
         address: addressSchema.optional(),
+    }),
+});
+exports.updateAvailabilitySchema = zod_1.z.object({
+    body: zod_1.z.object({
+        isAvailable: zod_1.z.boolean({ required_error: 'Availability status is required' }),
     }),
 });

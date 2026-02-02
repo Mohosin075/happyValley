@@ -64,6 +64,17 @@ const myServices = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const myOrder = (0, catchAsync_1.default)(async (req, res) => {
+    const filterables = (0, pick_1.default)(req.query, booking_constants_1.bookingFilterables);
+    const pagination = (0, pick_1.default)(req.query, pagination_1.paginationFields);
+    const result = await booking_service_1.BookingServices.myOrder(req.user, filterables, pagination);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Bookings retrieved successfully',
+        data: result,
+    });
+});
 const getBookingsByDate = (0, catchAsync_1.default)(async (req, res) => {
     const { date } = req.query;
     const result = await booking_service_1.BookingServices.getBookingsByDate(date);
@@ -150,4 +161,5 @@ exports.BookingController = {
     updateBookingFees,
     getWeeklyBookingsByUser,
     getUpcomingBookings,
+    myOrder,
 };
