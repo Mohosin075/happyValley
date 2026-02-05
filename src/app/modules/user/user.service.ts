@@ -359,7 +359,7 @@ const getUserById = async (userId: string): Promise<IUser | null> => {
   return user
 }
 
-const updateUserStatus = async (userId: string, status: USER_STATUS) => {
+const updateUser = async (userId: string, payload: Partial<IUser>) => {
   const isUserExist = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -368,17 +368,47 @@ const updateUserStatus = async (userId: string, status: USER_STATUS) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
-  const updatedUser = await User.findOneAndUpdate(
-    { _id: userId, status: { $nin: [USER_STATUS.DELETED] } },
-    { $set: { status } },
-    { new: true },
-  )
+  const session = await mongoose.startSession()
+  try {
+    session.startTransaction()
 
-  if (!updatedUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to update user status.')
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: userId, status: { $nin: [USER_STATUS.DELETED] } },
+      { $set: payload },
+      { new: true, session },
+    )
+
+    if (!updatedUser) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to update user.')
+    }
+
+    // Update Service model if services are changed
+    if (payload.services) {
+      // 1. Remove this staff from all services they were previously assigned to
+      await Service.updateMany(
+        { staff: userId },
+        { $pull: { staff: userId } },
+        { session },
+      )
+
+      // 2. Add this staff to the new list of services
+      if (payload.services.length > 0) {
+        await Service.updateMany(
+          { _id: { $in: payload.services } },
+          { $addToSet: { staff: userId } },
+          { session },
+        )
+      }
+    }
+
+    await session.commitTransaction()
+    session.endSession()
+    return updatedUser
+  } catch (error) {
+    await session.abortTransaction()
+    session.endSession()
+    throw error
   }
-
-  return 'User status updated successfully.'
 }
 
 const updateAvailability = async (user: JwtPayload, isAvailable: boolean) => {
@@ -604,7 +634,7 @@ export const UserServices = {
   getAllUsers,
   deleteUser,
   getUserById,
-  updateUserStatus,
+  updateUser,
   getProfile,
   deleteProfile,
 

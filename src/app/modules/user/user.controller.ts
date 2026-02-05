@@ -109,14 +109,13 @@ const getStaffById = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-const updateUserStatus = catchAsync(async (req: Request, res: Response) => {
+const updateUser = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.params
-  const { status } = req.body
-  const result = await UserServices.updateUserStatus(userId, status)
+  const result = await UserServices.updateUser(userId, req.body)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'User status updated successfully',
+    message: 'User updated successfully',
     data: result,
   })
 })
@@ -159,7 +158,7 @@ export const UserController = {
   createStaff,
   deleteUser,
   getUserById,
-  updateUserStatus,
+  updateUser,
   getProfile,
   deleteProfile,
 

@@ -45,6 +45,9 @@ export const updateUserSchema = z.object({
 
       appId: z.string().optional(),
       deviceToken: z.string().optional(),
+      services: z.array(z.string()).optional(),
+      status: z.nativeEnum(USER_STATUS).optional(),
+      role: z.nativeEnum(USER_ROLES).optional(),
     })
     .strict(),
 })

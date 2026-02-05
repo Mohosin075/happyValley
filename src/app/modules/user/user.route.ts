@@ -104,7 +104,7 @@ router
   .patch(
     auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
     validateRequest(updateUserSchema),
-    UserController.updateUserStatus,
+    UserController.updateUser,
   )
 
 export const UserRoutes = router
