@@ -35,6 +35,7 @@ app.use((0, cors_1.default)({
         '*',
         'https://happyvalleyconcierge.com',
         'http://10.10.7.45:3001',
+        'http://10.10.7.45:3001',
         'http://10.10.7.45:3000',
         'http://10.10.7.11:5173',
         'http://localhost:60851',
