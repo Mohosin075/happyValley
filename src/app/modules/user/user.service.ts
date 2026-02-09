@@ -196,7 +196,7 @@ const getAllUsers = async (
   // 🔍 Search
   if (searchTerm) {
     matchConditions.push({
-      $or: userFilterableFields.map(field => ({
+      $or: ['name', 'email', 'phone'].map(field => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     })
@@ -492,7 +492,7 @@ const getAllStaff = async (
   // 🔍 Search functionality
   if (searchTerm) {
     andConditions.push({
-      $or: userFilterableFields.map(field => ({
+      $or: ['name', 'email', 'phone'].map(field => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     })
