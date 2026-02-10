@@ -20,6 +20,28 @@ import {
   getBookingNotificationType,
 } from '../notifications/notifications.constants'
 
+const buildBookingSearchConditions = async (searchTerm: string) => {
+  const users = await User.find({
+    name: { $regex: searchTerm, $options: 'i' },
+  }).select('_id')
+  const userIds = users.map(u => u._id)
+
+  const services = await Service.find({
+    name: { $regex: searchTerm, $options: 'i' },
+  }).select('_id')
+  const serviceIds = services.map(s => s._id)
+
+  return {
+    $or: [
+      ...bookingSearchableFields.map(field => ({
+        [field]: { $regex: searchTerm, $options: 'i' },
+      })),
+      { user: { $in: userIds } },
+      { service: { $in: serviceIds } },
+    ],
+  }
+}
+
 const createBooking = async (
   user: JwtPayload,
   payload: IBooking,
@@ -131,14 +153,8 @@ const getAllBookings = async (
 
   // Search functionality
   if (searchTerm) {
-    andConditions.push({
-      $or: bookingSearchableFields.map(field => ({
-        [field]: {
-          $regex: searchTerm,
-          $options: 'i',
-        },
-      })),
-    })
+    const searchConditions = await buildBookingSearchConditions(searchTerm)
+    andConditions.push(searchConditions)
   }
 
   // Filter functionality
@@ -285,14 +301,8 @@ const myServices = async (
 
   // Search functionality
   if (searchTerm) {
-    andConditions.push({
-      $or: bookingSearchableFields.map(field => ({
-        [field]: {
-          $regex: searchTerm,
-          $options: 'i',
-        },
-      })),
-    })
+    const searchConditions = await buildBookingSearchConditions(searchTerm)
+    andConditions.push(searchConditions)
   }
 
   // Filter functionality
@@ -344,14 +354,8 @@ const myOrder = async (
 
   // Search functionality
   if (searchTerm) {
-    andConditions.push({
-      $or: bookingSearchableFields.map(field => ({
-        [field]: {
-          $regex: searchTerm,
-          $options: 'i',
-        },
-      })),
-    })
+    const searchConditions = await buildBookingSearchConditions(searchTerm)
+    andConditions.push(searchConditions)
   }
 
   // Filter functionality

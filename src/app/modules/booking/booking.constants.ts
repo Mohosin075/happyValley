@@ -1,5 +1,6 @@
 // Filterable fields for Booking
 export const bookingFilterables = [
+  'searchTerm',
   'startTime',
   'endTime',
   'address',
@@ -9,10 +10,10 @@ export const bookingFilterables = [
 
 // Searchable fields for Booking
 export const bookingSearchableFields = [
-  'startTime',
-  'endTime',
-  'address',
+  'serviceType.title',
+  'address.address',
   'notes',
+  'address'
 ]
 
 // Helper function for set comparison

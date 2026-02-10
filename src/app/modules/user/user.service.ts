@@ -12,7 +12,7 @@ import { paginationHelper } from '../../../helpers/paginationHelper'
 import { IPaginationOptions } from '../../../interfaces/pagination'
 import { S3Helper } from '../../../helpers/image/s3helper'
 import config from '../../../config'
-import { userFilterableFields } from './user.constants'
+import { userFilterableFields, userSearchableFields } from './user.constants'
 import {
   emailTemplate,
   staffCreateTemplate,
@@ -196,7 +196,7 @@ const getAllUsers = async (
   // 🔍 Search
   if (searchTerm) {
     matchConditions.push({
-      $or: ['name', 'email', 'phone'].map(field => ({
+      $or: userSearchableFields.map(field => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     })
@@ -492,7 +492,7 @@ const getAllStaff = async (
   // 🔍 Search functionality
   if (searchTerm) {
     andConditions.push({
-      $or: ['name', 'email', 'phone'].map(field => ({
+      $or: userSearchableFields.map(field => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     })
