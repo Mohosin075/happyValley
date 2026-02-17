@@ -589,6 +589,11 @@ const getBookingStats = async () => {
   }, {})
 }
 
+const getBookingStatsSummary = async () => {
+  const bookings = await getBookingStats()
+  return bookings
+}
+
 // Main payment stats function
 const getPaymentStatsClean = async (): Promise<IPaymentStats> => {
   const [subscription, bookings] = await Promise.all([
@@ -1011,4 +1016,5 @@ export const StatsServices = {
   getProviderSummaryStats,
   getRecentServices,
   getStaffRecentServices,
+  getBookingStatsSummary,
 }

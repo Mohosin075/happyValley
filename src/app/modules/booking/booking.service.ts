@@ -485,7 +485,11 @@ const updateBookingStatus = async (
   return result
 }
 
-const getWeeklyBookingsByUser = async (user: JwtPayload, date: string) => {
+const getWeeklyBookingsByUser = async (
+  user: JwtPayload,
+  date: string,
+  staffId?: string,
+) => {
   let baseDate = new Date()
 
   if (date === 'next') {
@@ -518,6 +522,12 @@ const getWeeklyBookingsByUser = async (user: JwtPayload, date: string) => {
 
   if (user.role === USER_ROLES.CLIENT) filter.user = user.authId
   if (user.role === USER_ROLES.STAFF) filter.staff = user.authId
+  if (
+    (user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.SUPER_ADMIN) &&
+    staffId
+  ) {
+    filter.staff = staffId
+  }
 
   const result = await Booking.find(filter).sort({ date: 1 }).populate({
     path: 'user',

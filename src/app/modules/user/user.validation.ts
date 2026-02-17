@@ -32,6 +32,7 @@ export const updateUserSchema = z.object({
   body: z
     .object({
       name: z.string().optional(),
+      email: z.string().email({ message: 'Invalid email address' }).optional(),
       profile: z.string().optional(),
       businessName: z.string().optional(),
       licenseNumber: z.string().optional(),

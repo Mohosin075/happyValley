@@ -139,10 +139,11 @@ const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
 
 const getWeeklyBookingsByUser = catchAsync(
   async (req: Request, res: Response) => {
-    const { date } = req.query as { date: string }
+    const { date, staffId } = req.query as { date: string; staffId?: string }
     const result = await BookingServices.getWeeklyBookingsByUser(
       req.user!,
       date,
+      staffId,
     )
     sendResponse(res, {
       statusCode: StatusCodes.OK,

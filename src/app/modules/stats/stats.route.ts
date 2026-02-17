@@ -54,6 +54,12 @@ router.get(
   StatsController.getPaymentStatsClean,
 )
 
+router.get(
+  '/admin/booking-stats',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  StatsController.getBookingStats,
+)
+
 // GET /api/stats/recent-services - Recent services for admin dashboard
 router.get(
   '/admin/recent-services',
