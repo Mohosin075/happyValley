@@ -14,6 +14,12 @@ export interface IContact {
   createdAt?: Date
   updatedAt?: Date
 }
+
+export interface IJoinTeam {
+  name: string
+  email: string
+  phone: string
+}
 export type PublicModel = Model<IPublic>
 
 export type IFaq = {

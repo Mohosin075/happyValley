@@ -98,4 +98,7 @@ exports.default = {
         email: process.env.SUPER_ADMIN_EMAIL,
         password: process.env.SUPER_ADMIN_PASSWORD,
     },
+    joinTeam: {
+        to: process.env.JOIN_TEAM_EMAIL,
+    },
 };

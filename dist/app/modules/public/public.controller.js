@@ -46,6 +46,15 @@ const createContact = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const createJoinTeam = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await public_service_1.PublicServices.createJoinTeam(req.body);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Thank you for your interest in joining our team. We will contact you soon.',
+        data: result,
+    });
+});
 const createFaq = (0, catchAsync_1.default)(async (req, res) => {
     const faqData = req.body;
     const result = await public_service_1.PublicServices.createFaq(faqData);
@@ -112,6 +121,7 @@ exports.PublicController = {
     getAllPublics,
     deletePublic,
     createContact,
+    createJoinTeam,
     createFaq,
     updateFaq,
     getSingleFaq,

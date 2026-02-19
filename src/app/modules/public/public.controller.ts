@@ -52,6 +52,17 @@ const createContact = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const createJoinTeam = catchAsync(async (req: Request, res: Response) => {
+  const result = await PublicServices.createJoinTeam(req.body)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Thank you for your interest in joining our team. We will contact you soon.',
+    data: result,
+  })
+})
+
 const createFaq = catchAsync(async (req: Request, res: Response) => {
   const faqData = req.body
   const result = await PublicServices.createFaq(faqData)
@@ -131,6 +142,7 @@ export const PublicController = {
   getAllPublics,
   deletePublic,
   createContact,
+  createJoinTeam,
   createFaq,
   updateFaq,
   getSingleFaq,

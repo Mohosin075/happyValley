@@ -22,21 +22,48 @@ const contactZodSchema = z.object({
   }),
 })
 
+const joinTeamZodSchema = z.object({
+  body: z.object({
+    name: z.string({
+      required_error: 'Name is required',
+    }),
+    email: z
+      .string({
+        required_error: 'Email is required',
+      })
+      .email('Invalid email format'),
+    phone: z.string({
+      required_error: 'Phone number is required',
+    }),
+  }),
+})
+
 export const PublicValidation = {
   create: z.object({
     body: z.object({
       content: z.string(),
-      type: z.enum(['privacy-policy', 'terms-and-condition','contact','about']),
+      type: z.enum([
+        'privacy-policy',
+        'terms-and-condition',
+        'contact',
+        'about',
+      ]),
     }),
   }),
 
   update: z.object({
     body: z.object({
       content: z.string(),
-      type: z.enum(['privacy-policy', 'terms-and-condition','contact','about']),
+      type: z.enum([
+        'privacy-policy',
+        'terms-and-condition',
+        'contact',
+        'about',
+      ]),
     }),
   }),
   contactZodSchema,
+  joinTeamZodSchema,
 }
 
 export const FaqValidations = {
@@ -54,7 +81,6 @@ export const FaqValidations = {
     }),
   }),
 }
-
 
 export const updatePublicZodSchema = z.object({
   body: z.object({

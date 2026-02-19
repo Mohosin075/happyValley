@@ -24,6 +24,12 @@ router.post(
 )
 
 router.post(
+  '/join-team',
+  validateRequest(PublicValidation.joinTeamZodSchema),
+  PublicController.createJoinTeam,
+)
+
+router.post(
   '/faq',
   auth(USER_ROLES.ADMIN),
   validateRequest(FaqValidations.create),
