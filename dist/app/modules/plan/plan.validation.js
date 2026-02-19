@@ -7,6 +7,10 @@ exports.createPlanZodValidationSchema = zod_1.z.object({
         title: zod_1.z.string({ required_error: 'Title is required' }),
         description: zod_1.z.string({ required_error: 'Description is required' }),
         features: zod_1.z.array(zod_1.z.string({ required_error: 'Feature is required' })),
+        idealFor: zod_1.z.string({ required_error: 'Ideal for is required' }),
+        limits: zod_1.z.object({
+            session: zod_1.z.number({ required_error: 'Session limit is required' }),
+        }),
         price: zod_1.z.number({ required_error: 'Price is required' }),
         duration: zod_1.z.enum(['1 month', '3 months', '6 months', '1 year', 'One Time'], {
             required_error: 'Duration is required',

@@ -5,6 +5,10 @@ export const createPlanZodValidationSchema = z.object({
     title: z.string({ required_error: 'Title is required' }),
     description: z.string({ required_error: 'Description is required' }),
     features: z.array(z.string({ required_error: 'Feature is required' })),
+    idealFor: z.string({ required_error: 'Ideal for is required' }),
+    limits: z.object({
+      session: z.number({ required_error: 'Session limit is required' }),
+    }),
     price: z.number({ required_error: 'Price is required' }),
 
     duration: z.enum(

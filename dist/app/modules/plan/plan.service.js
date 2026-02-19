@@ -7,10 +7,10 @@ exports.PackageService = exports.updatePlanToDB = void 0;
 const http_status_codes_1 = require("http-status-codes");
 const plan_model_1 = require("./plan.model");
 const mongoose_1 = __importDefault(require("mongoose"));
-const stripe_1 = __importDefault(require("../../../config/stripe"));
 const createStripeProductCatalog_1 = require("../../../stripe/createStripeProductCatalog");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const updateStripeProductCatalog_1 = require("../../../stripe/updateStripeProductCatalog");
+const deleteStripeProductCatalog_1 = require("../../../stripe/deleteStripeProductCatalog");
 const createPlanToDB = async (payload) => {
     const productPayload = {
         title: payload.title,
@@ -34,7 +34,11 @@ const createPlanToDB = async (payload) => {
     }
     catch (err) {
         // Rollback Stripe product if DB creation fails
-        await stripe_1.default.products.del(product.productId);
+        try {
+            await (0, deleteStripeProductCatalog_1.deleteStripeProductCatalog)(product.productId);
+        }
+        catch (_a) {
+        }
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to create the plan in database.');
     }
 };

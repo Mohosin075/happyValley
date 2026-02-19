@@ -2,10 +2,10 @@ import { StatusCodes } from 'http-status-codes'
 import { IPlan } from './plan.interface'
 import { Plan } from './plan.model'
 import mongoose from 'mongoose'
-import stripe from '../../../config/stripe'
 import { createStripeProductCatalog } from '../../../stripe/createStripeProductCatalog'
 import ApiError from '../../../errors/ApiError'
 import { updateStripeProductCatalog } from '../../../stripe/updateStripeProductCatalog'
+import { deleteStripeProductCatalog } from '../../../stripe/deleteStripeProductCatalog'
 
 const createPlanToDB = async (payload: IPlan): Promise<IPlan | null> => {
   const productPayload = {
@@ -36,7 +36,11 @@ const createPlanToDB = async (payload: IPlan): Promise<IPlan | null> => {
     return result
   } catch (err) {
     // Rollback Stripe product if DB creation fails
-    await stripe.products.del(product.productId)
+    try {
+      await deleteStripeProductCatalog(product.productId)
+    } catch {
+      
+    }
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       'Failed to create the plan in database.',

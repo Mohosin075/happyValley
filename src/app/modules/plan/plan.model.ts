@@ -15,6 +15,10 @@ const planSchema = new Schema<IPlan, PlanModel>(
       type: [String],
       required: true,
     },
+    idealFor: {
+      type: String,
+      required: true,
+    },
     limits: {
       session: {
         type: Number,

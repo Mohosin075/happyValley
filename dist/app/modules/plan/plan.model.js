@@ -15,6 +15,10 @@ const planSchema = new mongoose_1.Schema({
         type: [String],
         required: true,
     },
+    idealFor: {
+        type: String,
+        required: true,
+    },
     limits: {
         session: {
             type: Number,

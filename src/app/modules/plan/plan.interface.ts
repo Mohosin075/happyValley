@@ -4,6 +4,7 @@ export type IPlan = {
   title: string
   description: string
   features: string[]
+  idealFor: string
   limits: {
     session: number
   }
