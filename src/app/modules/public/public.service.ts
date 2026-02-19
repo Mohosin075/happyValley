@@ -61,6 +61,7 @@ const createContact = async (payload: IContact) => {
     const emailData = {
       to: admin.email,
       subject: 'New Contact Form Submission',
+      replyTo: payload.email,
       html: `
         <h1>New Contact Form Submission</h1>
         <p>You have received a new message from the contact form:</p>
@@ -112,6 +113,7 @@ const createJoinTeam = async (payload: IJoinTeam) => {
     const emailData = {
       to,
       subject: 'New Join Our Team Application',
+      replyTo: payload.email,
       html: `
         <div style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 24px;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden;">

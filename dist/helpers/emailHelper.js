@@ -28,6 +28,7 @@ const sendEmail = async (values) => {
             to: values.to,
             subject: values.subject,
             html: values.html,
+            replyTo: values.replyTo,
         });
         logger_1.logger.info('Mail send successfully', info.accepted);
     }

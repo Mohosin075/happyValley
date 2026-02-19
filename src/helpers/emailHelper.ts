@@ -25,6 +25,7 @@ const sendEmail = async (values: ISendEmail) => {
       to: values.to,
       subject: values.subject,
       html: values.html,
+      replyTo: values.replyTo,
     })
 
     logger.info('Mail send successfully', info.accepted)
