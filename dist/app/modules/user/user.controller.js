@@ -98,14 +98,13 @@ const getStaffById = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
-const updateUserStatus = (0, catchAsync_1.default)(async (req, res) => {
+const updateUser = (0, catchAsync_1.default)(async (req, res) => {
     const { userId } = req.params;
-    const { status } = req.body;
-    const result = await user_service_1.UserServices.updateUserStatus(userId, status);
+    const result = await user_service_1.UserServices.updateUser(userId, req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
-        message: 'User status updated successfully',
+        message: 'User updated successfully',
         data: result,
     });
 });
@@ -144,7 +143,7 @@ exports.UserController = {
     createStaff,
     deleteUser,
     getUserById,
-    updateUserStatus,
+    updateUser,
     getProfile,
     deleteProfile,
     getAllStaff,

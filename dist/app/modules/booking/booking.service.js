@@ -17,6 +17,25 @@ const availability_service_1 = require("../availability/availability.service");
 const subscription_model_1 = require("../subscription/subscription.model");
 const notifications_service_1 = require("../notifications/notifications.service");
 const notifications_constants_1 = require("../notifications/notifications.constants");
+const buildBookingSearchConditions = async (searchTerm) => {
+    const users = await user_model_1.User.find({
+        name: { $regex: searchTerm, $options: 'i' },
+    }).select('_id');
+    const userIds = users.map(u => u._id);
+    const services = await service_model_1.Service.find({
+        name: { $regex: searchTerm, $options: 'i' },
+    }).select('_id');
+    const serviceIds = services.map(s => s._id);
+    return {
+        $or: [
+            ...booking_constants_1.bookingSearchableFields.map(field => ({
+                [field]: { $regex: searchTerm, $options: 'i' },
+            })),
+            { user: { $in: userIds } },
+            { service: { $in: serviceIds } },
+        ],
+    };
+};
 const createBooking = async (user, payload) => {
     try {
         // Validate if staff is assigned to the service
@@ -89,14 +108,8 @@ const getAllBookings = async (user, filterables, pagination) => {
     const andConditions = [];
     // Search functionality
     if (searchTerm) {
-        andConditions.push({
-            $or: booking_constants_1.bookingSearchableFields.map(field => ({
-                [field]: {
-                    $regex: searchTerm,
-                    $options: 'i',
-                },
-            })),
-        });
+        const searchConditions = await buildBookingSearchConditions(searchTerm);
+        andConditions.push(searchConditions);
     }
     // Filter functionality
     if (Object.keys(filterData).length) {
@@ -199,14 +212,8 @@ const myServices = async (user, filterables, pagination) => {
     const andConditions = [];
     // Search functionality
     if (searchTerm) {
-        andConditions.push({
-            $or: booking_constants_1.bookingSearchableFields.map(field => ({
-                [field]: {
-                    $regex: searchTerm,
-                    $options: 'i',
-                },
-            })),
-        });
+        const searchConditions = await buildBookingSearchConditions(searchTerm);
+        andConditions.push(searchConditions);
     }
     // Filter functionality
     if (Object.keys(filterData).length) {
@@ -245,14 +252,8 @@ const myOrder = async (user, filterables, pagination) => {
     const andConditions = [];
     // Search functionality
     if (searchTerm) {
-        andConditions.push({
-            $or: booking_constants_1.bookingSearchableFields.map(field => ({
-                [field]: {
-                    $regex: searchTerm,
-                    $options: 'i',
-                },
-            })),
-        });
+        const searchConditions = await buildBookingSearchConditions(searchTerm);
+        andConditions.push(searchConditions);
     }
     // Filter functionality
     if (Object.keys(filterData).length) {
@@ -348,7 +349,7 @@ const updateBookingStatus = async (id, status) => {
     }
     return result;
 };
-const getWeeklyBookingsByUser = async (user, date) => {
+const getWeeklyBookingsByUser = async (user, date, staffId) => {
     let baseDate = new Date();
     if (date === 'next') {
         // Move to next week
@@ -380,6 +381,10 @@ const getWeeklyBookingsByUser = async (user, date) => {
         filter.user = user.authId;
     if (user.role === user_1.USER_ROLES.STAFF)
         filter.staff = user.authId;
+    if ((user.role === user_1.USER_ROLES.ADMIN || user.role === user_1.USER_ROLES.SUPER_ADMIN) &&
+        staffId) {
+        filter.staff = staffId;
+    }
     const result = await booking_model_1.Booking.find(filter).sort({ date: 1 }).populate({
         path: 'user',
         select: '-password -__v -createdAt -updatedAt -authentication',

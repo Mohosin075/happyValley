@@ -212,6 +212,23 @@ const getStaffRecentServices = async (req, res) => {
         });
     }
 };
+const getBookingStats = async (req, res) => {
+    try {
+        const data = await stats_service_1.StatsServices.getBookingStatsSummary();
+        res.status(200).json({
+            success: true,
+            message: 'Booking stats data fetched successfully',
+            data,
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching booking stats data',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+};
 exports.StatsController = {
     getDashboard,
     getServiceRequests,
@@ -225,4 +242,5 @@ exports.StatsController = {
     getProviderSummaryStats,
     getRecentServices,
     getStaffRecentServices,
+    getBookingStats,
 };

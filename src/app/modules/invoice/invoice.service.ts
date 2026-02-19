@@ -59,11 +59,22 @@ const generateInvoices = async (): Promise<any> => {
 }
 
 const getMyInvoices = async (userId: string): Promise<IInvoice[]> => {
-    return await Invoice.find({ user: userId }).sort({ createdAt: -1 })
+    return await Invoice.find({ user: userId })
+        .populate({
+            path: 'bookings',
+            select: 'date status price bookingFee serviceCharge bookingFeeStatus serviceChargeStatus',
+        })
+        .sort({ createdAt: -1 })
 }
 
 const getAllInvoices = async (): Promise<IInvoice[]> => {
-    return await Invoice.find({}).populate('user').sort({ createdAt: -1 })
+    return await Invoice.find({})
+        .populate('user')
+        .populate({
+            path: 'bookings',
+            select: 'date status price bookingFee serviceCharge bookingFeeStatus serviceChargeStatus',
+        })
+        .sort({ createdAt: -1 })
 }
 
 const getSingleInvoice = async (id: string): Promise<IInvoice> => {

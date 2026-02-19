@@ -139,7 +139,7 @@ const getAllUsers = async (paginationOptions, filterables = {}) => {
     // 🔍 Search
     if (searchTerm) {
         matchConditions.push({
-            $or: user_constants_1.userFilterableFields.map(field => ({
+            $or: user_constants_1.userSearchableFields.map(field => ({
                 [field]: { $regex: searchTerm, $options: 'i' },
             })),
         });
@@ -266,7 +266,7 @@ const getUserById = async (userId) => {
     }).select('-password -authentication -__v');
     return user;
 };
-const updateUserStatus = async (userId, status) => {
+const updateUser = async (userId, payload) => {
     const isUserExist = await user_model_1.User.findOne({
         _id: userId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
@@ -274,11 +274,31 @@ const updateUserStatus = async (userId, status) => {
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { status } }, { new: true });
-    if (!updatedUser) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update user status.');
+    const session = await mongoose_1.default.startSession();
+    try {
+        session.startTransaction();
+        const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: payload }, { new: true, session });
+        if (!updatedUser) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update user.');
+        }
+        // Update Service model if services are changed
+        if (payload.services) {
+            // 1. Remove this staff from all services they were previously assigned to
+            await service_model_1.Service.updateMany({ staff: userId }, { $pull: { staff: userId } }, { session });
+            // 2. Add this staff to the new list of services
+            if (payload.services.length > 0) {
+                await service_model_1.Service.updateMany({ _id: { $in: payload.services } }, { $addToSet: { staff: userId } }, { session });
+            }
+        }
+        await session.commitTransaction();
+        session.endSession();
+        return updatedUser;
     }
-    return 'User status updated successfully.';
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+    }
 };
 const updateAvailability = async (user, isAvailable) => {
     const isUserExist = await user_model_1.User.findOne({
@@ -339,7 +359,7 @@ const getAllStaff = async (paginationOptions, filterables = {}) => {
     // 🔍 Search functionality
     if (searchTerm) {
         andConditions.push({
-            $or: user_constants_1.userFilterableFields.map(field => ({
+            $or: user_constants_1.userSearchableFields.map(field => ({
                 [field]: { $regex: searchTerm, $options: 'i' },
             })),
         });
@@ -463,7 +483,7 @@ exports.UserServices = {
     getAllUsers,
     deleteUser,
     getUserById,
-    updateUserStatus,
+    updateUser,
     getProfile: exports.getProfile,
     deleteProfile,
     getAllStaff,

@@ -465,6 +465,10 @@ const getBookingStats = async () => {
         return acc;
     }, {});
 };
+const getBookingStatsSummary = async () => {
+    const bookings = await getBookingStats();
+    return bookings;
+};
 // Main payment stats function
 const getPaymentStatsClean = async () => {
     var _a;
@@ -824,4 +828,5 @@ exports.StatsServices = {
     getProviderSummaryStats,
     getRecentServices,
     getStaffRecentServices,
+    getBookingStatsSummary,
 };

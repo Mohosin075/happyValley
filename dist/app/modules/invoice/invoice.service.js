@@ -50,10 +50,21 @@ const generateInvoices = async () => {
     return results;
 };
 const getMyInvoices = async (userId) => {
-    return await invoice_model_1.Invoice.find({ user: userId }).sort({ createdAt: -1 });
+    return await invoice_model_1.Invoice.find({ user: userId })
+        .populate({
+        path: 'bookings',
+        select: 'date status price bookingFee serviceCharge bookingFeeStatus serviceChargeStatus',
+    })
+        .sort({ createdAt: -1 });
 };
 const getAllInvoices = async () => {
-    return await invoice_model_1.Invoice.find({}).populate('user').sort({ createdAt: -1 });
+    return await invoice_model_1.Invoice.find({})
+        .populate('user')
+        .populate({
+        path: 'bookings',
+        select: 'date status price bookingFee serviceCharge bookingFeeStatus serviceChargeStatus',
+    })
+        .sort({ createdAt: -1 });
 };
 const getSingleInvoice = async (id) => {
     const result = await invoice_model_1.Invoice.findById(id).populate('user').populate('bookings');

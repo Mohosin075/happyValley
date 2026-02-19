@@ -23,6 +23,7 @@ router.get('/admin/staff-stats', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, us
 router.get('/admin/service-stats', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), stats_controller_1.StatsController.getServiceStats);
 // GET /api/stats/payment-stats - Payment stats
 router.get('/admin/payment-stats', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), stats_controller_1.StatsController.getPaymentStatsClean);
+router.get('/admin/booking-stats', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), stats_controller_1.StatsController.getBookingStats);
 // GET /api/stats/recent-services - Recent services for admin dashboard
 router.get('/admin/recent-services', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), stats_controller_1.StatsController.getRecentServices);
 // GET /api/stats/review-support-stats - Review and support stats

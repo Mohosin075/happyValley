@@ -107,8 +107,8 @@ const updateBookingStatus = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getWeeklyBookingsByUser = (0, catchAsync_1.default)(async (req, res) => {
-    const { date } = req.query;
-    const result = await booking_service_1.BookingServices.getWeeklyBookingsByUser(req.user, date);
+    const { date, staffId } = req.query;
+    const result = await booking_service_1.BookingServices.getWeeklyBookingsByUser(req.user, date, staffId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

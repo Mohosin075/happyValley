@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.itemRemovalSchema = exports.itemExtractionSchema = exports.isSetEqual = exports.bookingSearchableFields = exports.bookingFilterables = void 0;
 // Filterable fields for Booking
 exports.bookingFilterables = [
+    'searchTerm',
     'startTime',
     'endTime',
     'address',
@@ -11,10 +12,10 @@ exports.bookingFilterables = [
 ];
 // Searchable fields for Booking
 exports.bookingSearchableFields = [
-    'startTime',
-    'endTime',
-    'address',
+    'serviceType.title',
+    'address.address',
     'notes',
+    'address'
 ];
 // Helper function for set comparison
 const isSetEqual = (setA, setB) => {
