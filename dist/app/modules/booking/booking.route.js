@@ -44,6 +44,9 @@ router
     .route('/:id/update-fees')
     .patch((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(booking_validation_1.BookingValidations.updateFees), booking_controller_1.BookingController.updateBookingFees);
 router
+    .route('/:id/assign-staff')
+    .patch((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(booking_validation_1.BookingValidations.assignStaff), booking_controller_1.BookingController.assignStaff);
+router
     .route('/weekly')
     .get((0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.STAFF), booking_controller_1.BookingController.getWeeklyBookingsByUser);
 // Single booking routes: /bookings/:id

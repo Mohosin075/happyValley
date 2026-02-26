@@ -182,6 +182,20 @@ const updateBookingFees = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const assignStaff = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const { staffId } = req.body
+
+  const result = await BookingServices.assignStaff(id, staffId)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Staff assigned successfully',
+    data: result,
+  })
+})
+
 const getUpcomingBookings = catchAsync(async (req: Request, res: Response) => {
   const staffId = (req.user as JwtPayload).authId
   const result = await BookingServices.getUpcomingBookings(staffId)
@@ -205,6 +219,7 @@ export const BookingController = {
   updateBookingStatus,
   updatePrice,
   updateBookingFees,
+  assignStaff,
   getWeeklyBookingsByUser,
   getUpcomingBookings,
   myOrder,

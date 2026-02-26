@@ -105,6 +105,14 @@ router
   )
 
 router
+  .route('/:id/assign-staff')
+  .patch(
+    auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+    validateRequest(BookingValidations.assignStaff),
+    BookingController.assignStaff,
+  )
+
+router
   .route('/weekly')
   .get(
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.STAFF),

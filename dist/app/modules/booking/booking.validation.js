@@ -87,6 +87,11 @@ exports.BookingValidations = {
             price: zod_1.z.number().nonnegative(),
         }),
     }),
+    assignStaff: zod_1.z.object({
+        body: zod_1.z.object({
+            staffId: objectId,
+        }),
+    }),
     updateFees: zod_1.z.object({
         body: zod_1.z.object({
             bookingFee: zod_1.z.number().nonnegative().optional(),

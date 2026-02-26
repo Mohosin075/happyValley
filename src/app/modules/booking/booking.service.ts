@@ -130,7 +130,16 @@ const createBooking = async (
       )
     }
 
-    await result.populate('user')
+    await result.populate([
+      {
+        path: 'user',
+        select: '-password -__v -createdAt -updatedAt -authentication',
+      },
+      {
+        path: 'staff',
+        select: 'name email',
+      },
+    ])
     return result
   } catch (error: any) {
     if (error.code === 11000) {
@@ -173,10 +182,16 @@ const getAllBookings = async (
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder })
-      .populate({
-        path: 'user',
-        select: '-password -__v -createdAt -updatedAt -authentication',
-      }),
+      .populate([
+        {
+          path: 'user',
+          select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+          path: 'staff',
+          select: 'name email',
+        },
+      ]),
     Booking.countDocuments(whereConditions),
   ])
 
@@ -196,10 +211,16 @@ const getSingleBooking = async (id: string): Promise<IBooking> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID')
   }
 
-  const result = await Booking.findById(id).populate({
-    path: 'user',
-    select: '-password -__v -createdAt -updatedAt -authentication',
-  })
+  const result = await Booking.findById(id).populate([
+    {
+      path: 'user',
+      select: '-password -__v -createdAt -updatedAt -authentication',
+    },
+    {
+      path: 'staff',
+      select: 'name email',
+    },
+  ])
   if (!result) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
@@ -250,7 +271,16 @@ const updateBooking = async (
       new: true,
       runValidators: true,
     },
-  ).populate('user')
+  ).populate([
+    {
+      path: 'user',
+      select: '-password -__v -createdAt -updatedAt -authentication',
+    },
+    {
+      path: 'staff',
+      select: 'name email',
+    },
+  ])
 
   if (!result) {
     throw new ApiError(
@@ -321,10 +351,16 @@ const myServices = async (
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder })
-      .populate({
-        path: 'user',
-        select: '-password -__v -createdAt -updatedAt -authentication',
-      }),
+      .populate([
+        {
+          path: 'user',
+          select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+          path: 'staff',
+          select: 'name email',
+        },
+      ]),
     Booking.countDocuments({ ...whereConditions, staff: user.authId }),
   ])
 
@@ -374,10 +410,16 @@ const myOrder = async (
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder })
-      .populate({
-        path: 'user service',
-        select: '-password -__v -createdAt -updatedAt -authentication',
-      }),
+      .populate([
+        {
+          path: 'user service',
+          select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+          path: 'staff',
+          select: 'name email',
+        },
+      ]),
     Booking.countDocuments({ ...whereConditions, user: user.authId }),
   ])
 
@@ -405,10 +447,16 @@ const getBookingsByDate = async (date: string): Promise<IBooking[]> => {
       $gte: startOfDay,
       $lte: endOfDay,
     },
-  }).populate({
-    path: 'user',
-    select: '-password -__v -createdAt -updatedAt -authentication',
-  })
+  }).populate([
+    {
+      path: 'user',
+      select: '-password -__v -createdAt -updatedAt -authentication',
+    },
+    {
+      path: 'staff',
+      select: 'name email',
+    },
+  ])
 
   return bookings
 }
@@ -441,7 +489,16 @@ const updateBookingStatus = async (
       new: true,
       runValidators: true,
     },
-  ).populate('user')
+  ).populate([
+    {
+      path: 'user',
+      select: '-password -__v -createdAt -updatedAt -authentication',
+    },
+    {
+      path: 'staff',
+      select: 'name email',
+    },
+  ])
 
   if (!result) {
     throw new ApiError(
@@ -529,10 +586,16 @@ const getWeeklyBookingsByUser = async (
     filter.staff = staffId
   }
 
-  const result = await Booking.find(filter).sort({ date: 1 }).populate({
-    path: 'user',
-    select: '-password -__v -createdAt -updatedAt -authentication',
-  })
+  const result = await Booking.find(filter).sort({ date: 1 }).populate([
+    {
+      path: 'user',
+      select: '-password -__v -createdAt -updatedAt -authentication',
+    },
+    {
+      path: 'staff',
+      select: 'name email',
+    },
+  ])
 
   return {
     total: result.length,
@@ -559,7 +622,16 @@ const updatePrice = async (
       new: true,
       runValidators: true,
     },
-  ).populate('user')
+  ).populate([
+    {
+      path: 'user',
+      select: '-password -__v -createdAt -updatedAt -authentication',
+    },
+    {
+      path: 'staff',
+      select: 'name email',
+    },
+  ])
 
   return result
 }
@@ -579,10 +651,115 @@ const updateBookingFees = async (
       new: true,
       runValidators: true,
     },
-  ).populate('user')
+  ).populate([
+    {
+      path: 'user',
+      select: '-password -__v -createdAt -updatedAt -authentication',
+    },
+    {
+      path: 'staff',
+      select: 'name email',
+    },
+  ])
 
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Booking not found')
+  }
+
+  return result
+}
+
+const assignStaff = async (
+  id: string,
+  staffId: string,
+): Promise<IBooking | null> => {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID')
+  }
+  if (!Types.ObjectId.isValid(staffId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Staff ID')
+  }
+
+  const booking = await Booking.findById(id)
+  if (!booking) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Booking not found')
+  }
+
+  // Check if the staff exists
+  const staffInfo = await User.findById(staffId).select('isAvailable status')
+  if (!staffInfo) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Staff not found')
+  }
+
+  // Check if staff is available generally
+  if (!staffInfo.isAvailable) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Selected staff is currently unavailable',
+    )
+  }
+
+  // Check for conflicts: One staff per client per day
+  if (booking.date) {
+    const startOfDay = new Date(booking.date)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(booking.date)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    const existingBooking = await Booking.findOne({
+      _id: { $ne: new Types.ObjectId(id) }, // exclude current booking
+      staff: staffId,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ['scheduled', 'confirmed', 'inProgress'] },
+    })
+
+    if (existingBooking) {
+      throw new ApiError(
+        StatusCodes.CONFLICT,
+        'Staff is already booked for this entire day.',
+      )
+    }
+  }
+
+  const updateData: any = { staff: staffId }
+
+  // If status is currently 'requested', update to 'scheduled'
+  if (booking.status === 'requested') {
+    updateData.status = 'scheduled'
+  }
+
+  const result = await Booking.findByIdAndUpdate(
+    new Types.ObjectId(id),
+    { $set: updateData },
+    {
+      new: true,
+      runValidators: true,
+    },
+  ).populate([
+    {
+      path: 'user',
+      select: '-password -__v -createdAt -updatedAt -authentication',
+    },
+    {
+      path: 'staff',
+      select: 'name email',
+    },
+  ])
+
+  if (!result) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      'Requested booking not found, please try again with valid id',
+    )
+  }
+
+  // Update availability for the new staff
+  if (result.staff && result.date) {
+    await AvailabilityServices.updateAvailability(
+      result.staff as any,
+      result.date,
+      true,
+    )
   }
 
   return result
@@ -604,10 +781,16 @@ const getUpcomingBookings = async (staffId: string): Promise<IBooking[]> => {
     // $or: [{ bookingFeeStatus: 'paid' }, { bookingFee: 0 }],
   })
     .sort({ date: 1 })
-    .populate({
-      path: 'user',
-      select: '-password -__v -createdAt -updatedAt -authentication',
-    })
+    .populate([
+      {
+        path: 'user',
+        select: '-password -__v -createdAt -updatedAt -authentication',
+      },
+      {
+        path: 'staff',
+        select: 'name email',
+      },
+    ])
 
   return result
 }
@@ -624,6 +807,7 @@ export const BookingServices = {
   updateBookingStatus,
   updatePrice,
   updateBookingFees,
+  assignStaff,
   getWeeklyBookingsByUser,
   getUpcomingBookings,
   myOrder,

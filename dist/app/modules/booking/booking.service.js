@@ -92,7 +92,16 @@ const createBooking = async (user, payload) => {
         if (payload.staff && payload.date) {
             await availability_service_1.AvailabilityServices.updateAvailability(payload.staff, payload.date, true);
         }
-        await result.populate('user');
+        await result.populate([
+            {
+                path: 'user',
+                select: '-password -__v -createdAt -updatedAt -authentication',
+            },
+            {
+                path: 'staff',
+                select: 'name email',
+            },
+        ]);
         return result;
     }
     catch (error) {
@@ -125,10 +134,16 @@ const getAllBookings = async (user, filterables, pagination) => {
             .skip(skip)
             .limit(limit)
             .sort({ [sortBy]: sortOrder })
-            .populate({
-            path: 'user',
-            select: '-password -__v -createdAt -updatedAt -authentication',
-        }),
+            .populate([
+            {
+                path: 'user',
+                select: '-password -__v -createdAt -updatedAt -authentication',
+            },
+            {
+                path: 'staff',
+                select: 'name email',
+            },
+        ]),
         booking_model_1.Booking.countDocuments(whereConditions),
     ]);
     return {
@@ -145,10 +160,16 @@ const getSingleBooking = async (id) => {
     if (!mongoose_1.Types.ObjectId.isValid(id)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Booking ID');
     }
-    const result = await booking_model_1.Booking.findById(id).populate({
-        path: 'user',
-        select: '-password -__v -createdAt -updatedAt -authentication',
-    });
+    const result = await booking_model_1.Booking.findById(id).populate([
+        {
+            path: 'user',
+            select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+            path: 'staff',
+            select: 'name email',
+        },
+    ]);
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Requested booking not found, please try again with valid id');
     }
@@ -181,7 +202,16 @@ const updateBooking = async (id, payload) => {
     const result = await booking_model_1.Booking.findByIdAndUpdate(new mongoose_1.Types.ObjectId(id), { $set: updateData }, {
         new: true,
         runValidators: true,
-    }).populate('user');
+    }).populate([
+        {
+            path: 'user',
+            select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+            path: 'staff',
+            select: 'name email',
+        },
+    ]);
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Requested booking not found, please try again with valid id');
     }
@@ -229,10 +259,16 @@ const myServices = async (user, filterables, pagination) => {
             .skip(skip)
             .limit(limit)
             .sort({ [sortBy]: sortOrder })
-            .populate({
-            path: 'user',
-            select: '-password -__v -createdAt -updatedAt -authentication',
-        }),
+            .populate([
+            {
+                path: 'user',
+                select: '-password -__v -createdAt -updatedAt -authentication',
+            },
+            {
+                path: 'staff',
+                select: 'name email',
+            },
+        ]),
         booking_model_1.Booking.countDocuments({ ...whereConditions, staff: user.authId }),
     ]);
     return {
@@ -269,10 +305,16 @@ const myOrder = async (user, filterables, pagination) => {
             .skip(skip)
             .limit(limit)
             .sort({ [sortBy]: sortOrder })
-            .populate({
-            path: 'user service',
-            select: '-password -__v -createdAt -updatedAt -authentication',
-        }),
+            .populate([
+            {
+                path: 'user service',
+                select: '-password -__v -createdAt -updatedAt -authentication',
+            },
+            {
+                path: 'staff',
+                select: 'name email',
+            },
+        ]),
         booking_model_1.Booking.countDocuments({ ...whereConditions, user: user.authId }),
     ]);
     return {
@@ -296,10 +338,16 @@ const getBookingsByDate = async (date) => {
             $gte: startOfDay,
             $lte: endOfDay,
         },
-    }).populate({
-        path: 'user',
-        select: '-password -__v -createdAt -updatedAt -authentication',
-    });
+    }).populate([
+        {
+            path: 'user',
+            select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+            path: 'staff',
+            select: 'name email',
+        },
+    ]);
     return bookings;
 };
 const updateBookingStatus = async (id, status) => {
@@ -319,7 +367,16 @@ const updateBookingStatus = async (id, status) => {
     const result = await booking_model_1.Booking.findByIdAndUpdate(new mongoose_1.Types.ObjectId(id), { $set: updateData }, {
         new: true,
         runValidators: true,
-    }).populate('user');
+    }).populate([
+        {
+            path: 'user',
+            select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+            path: 'staff',
+            select: 'name email',
+        },
+    ]);
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Requested booking not found, please try again with valid id');
     }
@@ -385,10 +442,16 @@ const getWeeklyBookingsByUser = async (user, date, staffId) => {
         staffId) {
         filter.staff = staffId;
     }
-    const result = await booking_model_1.Booking.find(filter).sort({ date: 1 }).populate({
-        path: 'user',
-        select: '-password -__v -createdAt -updatedAt -authentication',
-    });
+    const result = await booking_model_1.Booking.find(filter).sort({ date: 1 }).populate([
+        {
+            path: 'user',
+            select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+            path: 'staff',
+            select: 'name email',
+        },
+    ]);
     return {
         total: result.length,
         weekRange: {
@@ -405,7 +468,16 @@ const updatePrice = async (id, price) => {
     const result = await booking_model_1.Booking.findByIdAndUpdate(new mongoose_1.Types.ObjectId(id), { $set: { price } }, {
         new: true,
         runValidators: true,
-    }).populate('user');
+    }).populate([
+        {
+            path: 'user',
+            select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+            path: 'staff',
+            select: 'name email',
+        },
+    ]);
     return result;
 };
 const updateBookingFees = async (id, payload) => {
@@ -415,9 +487,81 @@ const updateBookingFees = async (id, payload) => {
     const result = await booking_model_1.Booking.findByIdAndUpdate(new mongoose_1.Types.ObjectId(id), { $set: payload }, {
         new: true,
         runValidators: true,
-    }).populate('user');
+    }).populate([
+        {
+            path: 'user',
+            select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+            path: 'staff',
+            select: 'name email',
+        },
+    ]);
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Booking not found');
+    }
+    return result;
+};
+const assignStaff = async (id, staffId) => {
+    if (!mongoose_1.Types.ObjectId.isValid(id)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Booking ID');
+    }
+    if (!mongoose_1.Types.ObjectId.isValid(staffId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Staff ID');
+    }
+    const booking = await booking_model_1.Booking.findById(id);
+    if (!booking) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Booking not found');
+    }
+    // Check if the staff exists
+    const staffInfo = await user_model_1.User.findById(staffId).select('isAvailable status');
+    if (!staffInfo) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Staff not found');
+    }
+    // Check if staff is available generally
+    if (!staffInfo.isAvailable) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Selected staff is currently unavailable');
+    }
+    // Check for conflicts: One staff per client per day
+    if (booking.date) {
+        const startOfDay = new Date(booking.date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(booking.date);
+        endOfDay.setHours(23, 59, 59, 999);
+        const existingBooking = await booking_model_1.Booking.findOne({
+            _id: { $ne: new mongoose_1.Types.ObjectId(id) }, // exclude current booking
+            staff: staffId,
+            date: { $gte: startOfDay, $lte: endOfDay },
+            status: { $in: ['scheduled', 'confirmed', 'inProgress'] },
+        });
+        if (existingBooking) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, 'Staff is already booked for this entire day.');
+        }
+    }
+    const updateData = { staff: staffId };
+    // If status is currently 'requested', update to 'scheduled'
+    if (booking.status === 'requested') {
+        updateData.status = 'scheduled';
+    }
+    const result = await booking_model_1.Booking.findByIdAndUpdate(new mongoose_1.Types.ObjectId(id), { $set: updateData }, {
+        new: true,
+        runValidators: true,
+    }).populate([
+        {
+            path: 'user',
+            select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+            path: 'staff',
+            select: 'name email',
+        },
+    ]);
+    if (!result) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Requested booking not found, please try again with valid id');
+    }
+    // Update availability for the new staff
+    if (result.staff && result.date) {
+        await availability_service_1.AvailabilityServices.updateAvailability(result.staff, result.date, true);
     }
     return result;
 };
@@ -434,10 +578,16 @@ const getUpcomingBookings = async (staffId) => {
         // $or: [{ bookingFeeStatus: 'paid' }, { bookingFee: 0 }],
     })
         .sort({ date: 1 })
-        .populate({
-        path: 'user',
-        select: '-password -__v -createdAt -updatedAt -authentication',
-    });
+        .populate([
+        {
+            path: 'user',
+            select: '-password -__v -createdAt -updatedAt -authentication',
+        },
+        {
+            path: 'staff',
+            select: 'name email',
+        },
+    ]);
     return result;
 };
 exports.BookingServices = {
@@ -451,6 +601,7 @@ exports.BookingServices = {
     updateBookingStatus,
     updatePrice,
     updateBookingFees,
+    assignStaff,
     getWeeklyBookingsByUser,
     getUpcomingBookings,
     myOrder,

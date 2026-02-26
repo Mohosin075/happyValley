@@ -98,6 +98,12 @@ export const BookingValidations = {
     }),
   }),
 
+  assignStaff: z.object({
+    body: z.object({
+      staffId: objectId,
+    }),
+  }),
+
   updateFees: z.object({
     body: z.object({
       bookingFee: z.number().nonnegative().optional(),

@@ -138,6 +138,17 @@ const updateBookingFees = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const assignStaff = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const { staffId } = req.body;
+    const result = await booking_service_1.BookingServices.assignStaff(id, staffId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Staff assigned successfully',
+        data: result,
+    });
+});
 const getUpcomingBookings = (0, catchAsync_1.default)(async (req, res) => {
     const staffId = req.user.authId;
     const result = await booking_service_1.BookingServices.getUpcomingBookings(staffId);
@@ -159,6 +170,7 @@ exports.BookingController = {
     updateBookingStatus,
     updatePrice,
     updateBookingFees,
+    assignStaff,
     getWeeklyBookingsByUser,
     getUpcomingBookings,
     myOrder,
