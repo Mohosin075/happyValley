@@ -5,7 +5,7 @@ export const ServiceValidations = {
     body: z.object({
       name: z.string(),
       description: z.string().optional(),
-      servicesProvided: z.array(z.string()),
+      servicesProvided: z.array(z.string()).optional(),
       occasions: z.array(z.string()).optional(),
       staff: z.array(z.string().regex(/^[0-9a-fA-F]{24}$/)).optional(), // ObjectId strings
       serviceType: z

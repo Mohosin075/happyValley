@@ -9,7 +9,7 @@ const serviceSchema = new Schema<IService, ServiceModel>(
     name: { type: String, required: true },
     description: { type: String },
     image: { type: String },
-    servicesProvided: { type: [String], required: true },
+    servicesProvided: { type: [String], default: [] },
     occasions: { type: [String], default: [] },
     status: { type: String, default: SERVICE_STATUS.ACTIVE },
     serviceType: [
