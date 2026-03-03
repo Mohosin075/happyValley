@@ -112,9 +112,6 @@ const createBooking = async (
       payload.bookingFee = 150
     }
 
-    console.log({payload})
-
-
     const result = await Booking.create({ ...payload, user: user.authId })
     if (!result) {
       throw new ApiError(
