@@ -6,7 +6,7 @@ import { ISendEmail } from '../interfaces/email'
 const transporter = nodemailer.createTransport({
   host: config.email.host,
   port: Number(config.email.port),
-  secure: false,
+  secure: config.email.port === '465', // true for 465, false for other ports
   auth: {
     user: config.email.user,
     pass: config.email.pass,
@@ -21,7 +21,7 @@ const transporter = nodemailer.createTransport({
 const sendEmail = async (values: ISendEmail) => {
   try {
     const info = await transporter.sendMail({
-      from: `"Happy Valley Home Concierge" ${config.email.from}`,
+      from: `"Happy Valley Home Concierge" <${config.email.from}>`,
       to: values.to,
       subject: values.subject,
       html: values.html,
