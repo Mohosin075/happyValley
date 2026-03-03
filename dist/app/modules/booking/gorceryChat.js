@@ -12,6 +12,7 @@ const booking_constants_1 = require("./booking.constants");
 const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const http_status_codes_1 = require("http-status-codes");
 const config_1 = __importDefault(require("../../../config"));
+const subscription_utils_1 = require("../subscription/subscription.utils");
 const client = new openai_1.default({ apiKey: config_1.default.openAi_api_key });
 // =============================================
 // Kitchen Restock AI Chatbot - Message Handler
@@ -20,6 +21,8 @@ exports.sendMessageToGroceryBot = (0, catchAsync_1.default)(async (req, res) => 
     var _a, _b, _c;
     const { sessionId, message } = req.body;
     const user = req.user;
+    // Check subscription usage
+    await (0, subscription_utils_1.checkSubscriptionUsage)(user.authId);
     // Find or create session
     let session;
     if (sessionId) {
@@ -39,6 +42,8 @@ exports.sendMessageToGroceryBot = (0, catchAsync_1.default)(async (req, res) => 
             conversationHistory: [],
             status: 'draft',
         });
+        // Increment usage when a new session starts
+        await (0, subscription_utils_1.incrementSubscriptionUsage)(user.authId);
     }
     // Add user message to conversation history
     session.conversationHistory.push({

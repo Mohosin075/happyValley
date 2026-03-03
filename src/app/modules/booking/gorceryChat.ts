@@ -8,6 +8,7 @@ import { itemExtractionSchema, itemRemovalSchema } from './booking.constants'
 import sendResponse from '../../../shared/sendResponse'
 import { StatusCodes } from 'http-status-codes'
 import config from '../../../config'
+import { checkSubscriptionUsage, incrementSubscriptionUsage } from '../subscription/subscription.utils'
 
 const client = new OpenAI({ apiKey: config.openAi_api_key })
 
@@ -18,6 +19,9 @@ export const sendMessageToGroceryBot = catchAsync(
   async (req: Request, res: Response) => {
     const { sessionId, message } = req.body
     const user = req.user as JwtPayload & { authId: string }
+
+    // Check subscription usage
+    await checkSubscriptionUsage(user.authId)
 
     // Find or create session
     let session
@@ -38,6 +42,8 @@ export const sendMessageToGroceryBot = catchAsync(
         conversationHistory: [],
         status: 'draft',
       })
+      // Increment usage when a new session starts
+      await incrementSubscriptionUsage(user.authId)
     }
 
     // Add user message to conversation history

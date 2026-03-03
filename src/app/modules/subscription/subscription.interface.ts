@@ -1,11 +1,12 @@
-import { Date, Model, Types } from 'mongoose'
+import { Model, Types } from 'mongoose'
+import { IPlan } from '../plan/plan.interface'
 
 export type ISubscription = {
   _id?: string
   customerId: string
   price: number
-  user: Types.ObjectId
-  plan: Types.ObjectId
+  user: Types.ObjectId | any
+  plan: Types.ObjectId | IPlan | any
   trxId: string
   subscriptionId: string
   status: 'expired' | 'active' | 'cancel'

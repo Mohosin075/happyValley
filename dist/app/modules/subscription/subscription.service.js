@@ -11,16 +11,21 @@ const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 // import checkUsage from './checkSubscription'
 const subscriptionDetailsFromDB = async (user) => {
     var _a;
-    const subscription = await subscription_model_1.Subscription.findOne({ user: user.authId })
-        .populate('plan', 'title price duration type')
-        .lean();
-    console.log({ subscription });
+    const subscription = (await subscription_model_1.Subscription.findOne({ user: user.authId })
+        .populate('plan', 'title price duration paymentType')
+        .lean());
     if (!subscription) {
         return {}; // Return empty object if no subscription found
     }
     // 🧩 If it's a free plan, skip Stripe check
     const isFreePlan = ((_a = subscription === null || subscription === void 0 ? void 0 : subscription.plan) === null || _a === void 0 ? void 0 : _a.price) === 0 || !subscription.subscriptionId;
     if (isFreePlan) {
+        return subscription;
+    }
+    // Optimize: Trust the database if the subscription is active and not yet expired
+    const isCurrentlyActive = subscription.status === 'active' &&
+        new Date(subscription.currentPeriodEnd) > new Date();
+    if (isCurrentlyActive) {
         return subscription;
     }
     try {
@@ -31,6 +36,19 @@ const subscriptionDetailsFromDB = async (user) => {
                 user_model_1.User.findByIdAndUpdate(user.authId, { subscribe: false }, { new: true }),
                 subscription_model_1.Subscription.findOneAndUpdate({ user: user.authId }, { status: 'expired' }, { new: true }),
             ]);
+            // Update local subscription object to reflect change
+            subscription.status = 'expired';
+        }
+        else {
+            // If Stripe says it's active but our DB was outdated, update DB
+            const updatedSub = await subscription_model_1.Subscription.findOneAndUpdate({ user: user.authId }, {
+                status: 'active',
+                currentPeriodStart: new Date(subscriptionFromStripe.current_period_start * 1000),
+                currentPeriodEnd: new Date(subscriptionFromStripe.current_period_end * 1000)
+            }, { new: true })
+                .populate('plan', 'title price duration paymentType')
+                .lean();
+            return updatedSub || subscription;
         }
         return subscription;
     }
@@ -38,6 +56,7 @@ const subscriptionDetailsFromDB = async (user) => {
         console.error('Stripe subscription retrieval failed:', error.message);
         // If Stripe check fails, fallback to marking it as expired
         await subscription_model_1.Subscription.findOneAndUpdate({ user: user.authId }, { status: 'expired' }, { new: true });
+        subscription.status = 'expired';
         return subscription;
     }
 };

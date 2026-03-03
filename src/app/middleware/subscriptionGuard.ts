@@ -11,10 +11,10 @@ const subscriptionGuard = async (req: Request, res: Response, next: NextFunction
     }
 
     const user = await User.findById(userId).select('subscribe')
-    if (!user) {
+    if (!user || !user.subscribe) {
       throw new ApiError(
         StatusCodes.PAYMENT_REQUIRED,
-        'Active subscription required to access this resource'
+        'Active subscription required to access this resource',
       )
     }
 

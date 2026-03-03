@@ -11,11 +11,10 @@ import { createCheckoutSession } from '../../../stripe/checkOutSession'
 const subscriptionDetailsFromDB = async (
   user: JwtPayload,
 ): Promise<ISubscription | {}> => {
-  const subscription = await Subscription.findOne({ user: user.authId })
-    .populate<{ plan: IPlan }>('plan', 'title price duration type')
-    .lean()
+  const subscription = (await Subscription.findOne({ user: user.authId })
+    .populate<{ plan: IPlan }>('plan', 'title price duration paymentType')
+    .lean()) as ISubscription;
 
-  console.log({ subscription })
 
   if (!subscription) {
     return {} // Return empty object if no subscription found
@@ -23,10 +22,19 @@ const subscriptionDetailsFromDB = async (
 
   // 🧩 If it's a free plan, skip Stripe check
   const isFreePlan =
-    subscription?.plan?.price === 0 || !subscription.subscriptionId
+    (subscription?.plan as IPlan)?.price === 0 || !subscription.subscriptionId
 
   if (isFreePlan) {
     return subscription
+  }
+
+  // Optimize: Trust the database if the subscription is active and not yet expired
+  const isCurrentlyActive = 
+    subscription.status === 'active' && 
+    new Date(subscription.currentPeriodEnd) > new Date();
+
+  if (isCurrentlyActive) {
+    return subscription;
   }
 
   try {
@@ -48,6 +56,22 @@ const subscriptionDetailsFromDB = async (
           { new: true },
         ),
       ])
+      // Update local subscription object to reflect change
+      subscription.status = 'expired';
+    } else {
+      // If Stripe says it's active but our DB was outdated, update DB
+      const updatedSub = await Subscription.findOneAndUpdate(
+        { user: user.authId },
+        { 
+          status: 'active',
+          currentPeriodStart: new Date((subscriptionFromStripe as any).current_period_start * 1000),
+          currentPeriodEnd: new Date((subscriptionFromStripe as any).current_period_end * 1000)
+        },
+        { new: true }
+      )
+      .populate<{ plan: IPlan }>('plan', 'title price duration paymentType')
+      .lean() as ISubscription;
+      return updatedSub || subscription;
     }
 
     return subscription
@@ -60,6 +84,7 @@ const subscriptionDetailsFromDB = async (
       { status: 'expired' },
       { new: true },
     )
+    subscription.status = 'expired';
 
     return subscription
   }

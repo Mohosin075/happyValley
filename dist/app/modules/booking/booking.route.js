@@ -58,12 +58,12 @@ router
 // ====================================
 // Kitchen Restock AI Chatbot Routes
 // ====================================
-router.post('/chat/send', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.sendMessageToGroceryBot);
-router.post('/chat/confirm', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.confirmGroceryOrder);
-router.get('/chat/past-orders', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.getPastOrders);
-router.get('/chat/active-session', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.getActiveSession);
-router.get('/chat/session/:sessionId', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.getSingleGrocerySession);
-router.post('/chat/items', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.addManualItems);
-router.delete('/chat/items', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.removeItemFromGrocerySession);
-router.post('/chat/reuse', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), gorceryChat_1.reuseFromPastOrder);
+router.post('/chat/send', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), subscriptionGuard_1.default, gorceryChat_1.sendMessageToGroceryBot);
+router.post('/chat/confirm', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), subscriptionGuard_1.default, gorceryChat_1.confirmGroceryOrder);
+router.get('/chat/past-orders', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), subscriptionGuard_1.default, gorceryChat_1.getPastOrders);
+router.get('/chat/active-session', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), subscriptionGuard_1.default, gorceryChat_1.getActiveSession);
+router.get('/chat/session/:sessionId', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), subscriptionGuard_1.default, gorceryChat_1.getSingleGrocerySession);
+router.post('/chat/items', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), subscriptionGuard_1.default, gorceryChat_1.addManualItems);
+router.delete('/chat/items', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), subscriptionGuard_1.default, gorceryChat_1.removeItemFromGrocerySession);
+router.post('/chat/reuse', (0, auth_1.default)(user_1.USER_ROLES.CLIENT, user_1.USER_ROLES.ADMIN), subscriptionGuard_1.default, gorceryChat_1.reuseFromPastOrder);
 exports.BookingRoutes = router;

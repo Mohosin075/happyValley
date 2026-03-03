@@ -307,6 +307,8 @@ export const handlePaymentSucceeded = async (invoice: Stripe.Invoice) => {
         status: 'active',
         currentPeriodStart,
         currentPeriodEnd,
+        'usage.session': 0, // Reset usage for new period
+        lastReset: new Date(),
       })
 
       // Record the Payment transaction for renewal
