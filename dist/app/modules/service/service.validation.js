@@ -7,7 +7,7 @@ exports.ServiceValidations = {
         body: zod_1.z.object({
             name: zod_1.z.string(),
             description: zod_1.z.string().optional(),
-            servicesProvided: zod_1.z.array(zod_1.z.string()),
+            servicesProvided: zod_1.z.array(zod_1.z.string()).optional(),
             occasions: zod_1.z.array(zod_1.z.string()).optional(),
             staff: zod_1.z.array(zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/)).optional(), // ObjectId strings
             serviceType: zod_1.z

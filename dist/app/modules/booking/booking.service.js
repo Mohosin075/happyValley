@@ -84,6 +84,7 @@ const createBooking = async (user, payload) => {
         else {
             payload.bookingFee = 150;
         }
+        console.log({ payload });
         const result = await booking_model_1.Booking.create({ ...payload, user: user.authId });
         if (!result) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to create Booking, please try again with valid data.');

@@ -35,7 +35,7 @@ const bookingSchema = new Schema<IBooking, BookingModel>(
     },
 
     serviceType: {
-      title: { type: String, required: true },
+      title: { type: String },
       description: { type: String },
     },
 

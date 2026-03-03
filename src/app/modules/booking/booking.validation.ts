@@ -38,7 +38,7 @@ export const BookingValidations = {
       serviceType: z.object({
         title: z.string(),
         description: z.string().optional(),
-      }),
+      }).optional(),
 
       serviceDetails: z
         .array(

@@ -27,7 +27,7 @@ const bookingSchema = new mongoose_1.Schema({
         },
     },
     serviceType: {
-        title: { type: String, required: true },
+        title: { type: String },
         description: { type: String },
     },
     serviceDetails: [

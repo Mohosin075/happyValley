@@ -36,7 +36,7 @@ exports.BookingValidations = {
             serviceType: zod_1.z.object({
                 title: zod_1.z.string(),
                 description: zod_1.z.string().optional(),
-            }),
+            }).optional(),
             serviceDetails: zod_1.z
                 .array(zod_1.z.object({
                 name: zod_1.z.string(),
