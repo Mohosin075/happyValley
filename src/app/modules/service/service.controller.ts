@@ -11,11 +11,10 @@ import ApiError from '../../../errors/ApiError'
 const createService = catchAsync(async (req: Request, res: Response) => {
   // const serviceData = req.body;
 
-  if (!req.body.images || req.body.images.length === 0) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'image is required')
+  const serviceData = { ...req.body }
+  if (req.body.images && req.body.images.length > 0) {
+    serviceData.image = req.body.images[0]
   }
-
-  const serviceData = { ...req.body, image: req.body.images[0] }
 
   const result = await ServiceServices.createService(req.user!, serviceData)
 

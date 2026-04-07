@@ -8,7 +8,7 @@ const serviceSchema = new Schema<IService, ServiceModel>(
     staff: { type: [Schema.Types.ObjectId], ref: 'User', default: [] },
     name: { type: String, required: true },
     description: { type: String },
-    image: { type: String },
+    image: { type: String, required: false },
     servicesProvided: { type: [String], default: [] },
     occasions: { type: [String], default: [] },
     status: { type: String, default: SERVICE_STATUS.ACTIVE },
