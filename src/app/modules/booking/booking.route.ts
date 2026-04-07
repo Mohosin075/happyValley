@@ -46,7 +46,7 @@ router
       USER_ROLES.CLIENT,
       USER_ROLES.STAFF,
     ),
-    subscriptionGuard,
+    // subscriptionGuard,
     BookingController.myServices,
   )
 router
@@ -58,7 +58,7 @@ router
       USER_ROLES.CLIENT,
       USER_ROLES.STAFF,
     ),
-    subscriptionGuard,
+    // subscriptionGuard,
     BookingController.myOrder,
   )
 
