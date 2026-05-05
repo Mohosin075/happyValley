@@ -940,7 +940,7 @@ const getRecentServices = async (): Promise<IRecentService[]> => {
     .limit(5)
     .populate('user', 'name profile')
     .populate('staff', 'name profile')
-    .select('user staff serviceType.title status date price')
+    .populate('service', 'name')
 
   return bookings.map(booking => ({
     _id: booking._id.toString(),
@@ -959,7 +959,7 @@ const getRecentServices = async (): Promise<IRecentService[]> => {
         _id: '',
         name: 'Unassigned',
       },
-    service: booking.serviceType?.title || 'Unknown Service',
+    service: (booking.service as any)?.name || booking.serviceType?.title || 'Unknown Service',
     status: booking.status as string,
     date: booking.date,
     price: booking.price,
@@ -982,21 +982,22 @@ const getStaffRecentServices = async (
     .sort({ createdAt: -1 })
     .limit(10)
     .populate('user', 'name profile')
-    .select('user serviceType.title status date price')
+    .populate('service', 'name')
+    .lean()
 
-  return bookings.map(booking => ({
+  return (bookings as any).map((booking: any) => ({
     _id: booking._id.toString(),
     user: {
-      _id: (booking.user as any)?._id,
-      name: (booking.user as any)?.name || 'Unknown User',
-      profile: (booking.user as any)?.profile,
+      _id: booking.user?._id,
+      name: booking.user?.name || 'Unknown User',
+      profile: booking.user?.profile,
     },
     staff: {
       _id: staffId,
       name: '', // We don't need staff name here as it's for the logged-in staff
     },
-    service: booking.serviceType?.title || 'Unknown Service',
-    status: booking.status as string,
+    service: booking.service?.name || booking.serviceType?.title || 'Unknown Service',
+    status: booking.status,
     date: booking.date,
     price: booking.price,
   }))
