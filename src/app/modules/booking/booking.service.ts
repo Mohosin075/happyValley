@@ -789,6 +789,10 @@ const getUpcomingBookings = async (staffId: string): Promise<IBooking[]> => {
         path: 'staff',
         select: 'name email',
       },
+      {
+        path: 'service',
+        select: 'name',
+      }
     ])
 
   return result
