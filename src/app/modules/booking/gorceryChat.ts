@@ -21,7 +21,7 @@ export const sendMessageToGroceryBot = catchAsync(
     const user = req.user as JwtPayload & { authId: string }
 
     // Check subscription usage
-    // await checkSubscriptionUsage(user.authId)
+    await checkSubscriptionUsage(user.authId)
 
     // Find or create session
     let session
