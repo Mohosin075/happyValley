@@ -16,20 +16,25 @@ export const checkSubscriptionUsage = async (userId: string) => {
   }).populate<{ plan: IPlan }>('plan');
 
   if (!subscription) {
+    /*
     throw new ApiError(
       StatusCodes.PAYMENT_REQUIRED,
       'Active subscription required to access this resource'
     );
+    */
+    return null;
   }
 
   const { plan, usage } = subscription;
 
   if (plan && plan.limits && plan.limits.session > 0) {
     if (usage.session >= plan.limits.session) {
+      /*
       throw new ApiError(
         StatusCodes.FORBIDDEN,
         `You have reached your monthly limit of ${plan.limits.session} sessions. Please upgrade your plan.`
       );
+      */
     }
   }
 
